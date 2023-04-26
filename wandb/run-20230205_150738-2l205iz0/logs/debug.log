@@ -1,0 +1,50 @@
+2023-02-05 15:07:38,146 INFO    MainThread:17788 [wandb_setup.py:_flush():75] Loading settings from /Users/jijingtian/.config/wandb/settings
+2023-02-05 15:07:38,146 INFO    MainThread:17788 [wandb_setup.py:_flush():75] Loading settings from /Users/jijingtian/Documents/GitHub/RL/Project/Optimization_Encoder/wandb/settings
+2023-02-05 15:07:38,146 INFO    MainThread:17788 [wandb_setup.py:_flush():75] Loading settings from environment variables: {}
+2023-02-05 15:07:38,146 INFO    MainThread:17788 [wandb_setup.py:_flush():75] Inferring run settings from compute environment: {'program': '<python with no main file>'}
+2023-02-05 15:07:38,147 INFO    MainThread:17788 [wandb_init.py:_log_setup():405] Logging user logs to /Users/jijingtian/Documents/GitHub/RL/Project/Optimization_Encoder/wandb/run-20230205_150738-2l205iz0/logs/debug.log
+2023-02-05 15:07:38,147 INFO    MainThread:17788 [wandb_init.py:_log_setup():406] Logging internal logs to /Users/jijingtian/Documents/GitHub/RL/Project/Optimization_Encoder/wandb/run-20230205_150738-2l205iz0/logs/debug-internal.log
+2023-02-05 15:07:38,147 INFO    MainThread:17788 [wandb_init.py:_jupyter_setup():355] configuring jupyter hooks <wandb.sdk.wandb_init._WandbInit object at 0x7fdbf33c6c90>
+2023-02-05 15:07:38,147 INFO    MainThread:17788 [wandb_init.py:init():439] calling init triggers
+2023-02-05 15:07:38,147 INFO    MainThread:17788 [wandb_init.py:init():443] wandb.init called with sweep_config: {}
+config: {'use_remote': False, 'use_wandb': True, 'task_name': 'CodeTest', 'algo_name': 'C_Encoder_v1', 'env_name': 'HalfCheetah-v2', 'skip_max_len_done': True, 'task_num': 20, 'test_task_num': 10, 'test_sample_num': 4000, 'ns_test_steps': 1000, 'env_default_change_range': 3.0, 'env_ood_change_range': 4.0, 'varying_params': ['gravity'], 'model_path': None, 'render': False, 'gamma': 0.99, 'num_threads': 4, 'seed': 1, 'random_num': 4000, 'start_train_num': 20000, 'inner_iter_num': 1, 'update_sac_interval': 1, 'update_encoder_interval': 1, 'max_iter_num': 1000, 'min_batch_size': 1000, 'transition_hidden_size': [128, 256, 128], 'transition_deterministic': False, 'emb_dim': 2, 'encoder_batch_size': 128, 'n_support': 16, 'meta_lr': 0.01, 'task_per_batch': 10, 'encoder_hidden_size': [256, 256], 'log_confidence_loss': True, 'log_confidence_coef': 10.0, 'prob_confidence_loss': False, 'prob_confidence_coef': 0.1, 'encoder_lr': 0.0003, 'emb_tau': 0.995, 'sac_mini_batch_size': 256, 'max_grad_norm': 10.0, 'policy_hidden_size': [128, 256, 128], 'policy_learning_rate': 0.0003, 'sac_alpha': 1.0, 'sac_tau': 0.995, 'value_learning_rate': 0.001, 'value_hidden_size': [128, 256, 128], 'device': 'cuda:0', 'description': 'RELEASE'}
+2023-02-05 15:07:38,148 INFO    MainThread:17788 [wandb_init.py:init():492] starting backend
+2023-02-05 15:07:38,148 INFO    MainThread:17788 [backend.py:_multiprocessing_setup():101] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2023-02-05 15:07:38,163 INFO    MainThread:17788 [backend.py:ensure_launched():219] starting backend process...
+2023-02-05 15:07:38,185 INFO    MainThread:17788 [backend.py:ensure_launched():225] started backend process with pid: 58082
+2023-02-05 15:07:38,187 INFO    MainThread:17788 [wandb_init.py:init():501] backend started and connected
+2023-02-05 15:07:38,230 INFO    MainThread:17788 [wandb_run.py:_label_probe_notebook():947] probe notebook
+2023-02-05 15:07:38,231 INFO    MainThread:17788 [wandb_run.py:_label_probe_notebook():957] Unable to probe notebook: 'NoneType' object has no attribute 'get'
+2023-02-05 15:07:38,231 INFO    MainThread:17788 [wandb_init.py:init():565] updated telemetry
+2023-02-05 15:07:38,257 INFO    MainThread:17788 [wandb_init.py:init():596] communicating run to backend with 30 second timeout
+2023-02-05 15:07:41,003 INFO    MainThread:17788 [wandb_run.py:_on_init():1759] communicating current version
+2023-02-05 15:07:41,875 INFO    MainThread:17788 [wandb_run.py:_on_init():1763] got version response upgrade_message: "wandb version 0.13.9 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2023-02-05 15:07:41,875 INFO    MainThread:17788 [wandb_init.py:init():625] starting run threads in backend
+2023-02-05 15:07:46,891 INFO    MainThread:17788 [wandb_run.py:_console_start():1733] atexit reg
+2023-02-05 15:07:46,892 INFO    MainThread:17788 [wandb_run.py:_redirect():1606] redirect: SettingsConsole.WRAP
+2023-02-05 15:07:46,892 INFO    MainThread:17788 [wandb_run.py:_redirect():1643] Wrapping output streams.
+2023-02-05 15:07:46,893 INFO    MainThread:17788 [wandb_run.py:_redirect():1667] Redirects installed.
+2023-02-05 15:07:46,893 INFO    MainThread:17788 [wandb_init.py:init():664] run started, returning control to user process
+2023-02-05 15:07:46,906 INFO    MainThread:17788 [wandb_run.py:_tensorboard_callback():1095] tensorboard callback: data/log_file/HalfCheetah-v2-C_Encoder_v1-CodeTest, None
+2023-02-05 15:07:48,612 INFO    MainThread:17788 [wandb_init.py:_pause_backend():318] pausing backend
+2023-02-05 15:07:48,613 INFO    MainThread:17788 [jupyter.py:save_ipynb():374] not saving jupyter notebook
+2023-02-05 15:08:50,791 INFO    MainThread:17788 [wandb_init.py:_resume_backend():327] resuming backend
+2023-02-05 15:08:50,873 INFO    MainThread:17788 [wandb_run.py:_tensorboard_callback():1095] tensorboard callback: data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest, None
+2023-02-05 15:08:51,455 INFO    MainThread:17788 [wandb_init.py:_pause_backend():318] pausing backend
+2023-02-05 15:08:51,455 INFO    MainThread:17788 [jupyter.py:save_ipynb():374] not saving jupyter notebook
+2023-02-05 15:09:33,168 INFO    MainThread:17788 [wandb_init.py:_resume_backend():327] resuming backend
+2023-02-05 15:09:33,169 INFO    MainThread:17788 [wandb_init.py:_pause_backend():318] pausing backend
+2023-02-05 15:09:33,169 INFO    MainThread:17788 [jupyter.py:save_ipynb():374] not saving jupyter notebook
+2023-02-05 15:10:16,369 INFO    MainThread:17788 [wandb_init.py:_resume_backend():327] resuming backend
+2023-02-05 15:10:16,371 INFO    MainThread:17788 [wandb_init.py:_pause_backend():318] pausing backend
+2023-02-05 15:10:16,372 INFO    MainThread:17788 [jupyter.py:save_ipynb():374] not saving jupyter notebook
+2023-02-05 16:22:20,961 INFO    MainThread:17788 [wandb_init.py:_resume_backend():327] resuming backend
+2023-02-05 16:22:20,963 INFO    MainThread:17788 [wandb_init.py:_pause_backend():318] pausing backend
+2023-02-05 16:22:20,963 INFO    MainThread:17788 [jupyter.py:save_ipynb():374] not saving jupyter notebook
+2023-02-05 16:22:38,065 INFO    MainThread:17788 [wandb_init.py:_resume_backend():327] resuming backend
+2023-02-05 16:22:38,084 INFO    MainThread:17788 [wandb_init.py:_pause_backend():318] pausing backend
+2023-02-05 16:22:38,085 INFO    MainThread:17788 [jupyter.py:save_ipynb():374] not saving jupyter notebook
+2023-02-05 16:57:52,372 INFO    MainThread:17788 [wandb_run.py:_atexit_cleanup():1702] got exitcode: 15
+2023-02-05 16:57:52,372 INFO    MainThread:17788 [wandb_run.py:_restore():1674] restore
+2023-02-05 16:57:52,883 INFO    MainThread:17788 [wandb_run.py:_restore():1674] restore

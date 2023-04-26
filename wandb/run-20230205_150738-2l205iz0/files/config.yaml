@@ -1,0 +1,185 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.12.11
+    framework: torch
+    is_jupyter_run: true
+    is_kaggle_kernel: false
+    python_version: 3.7.13
+    start_time: 1675580858
+    t:
+      1:
+      - 1
+      - 5
+      - 30
+      3:
+      - 13
+      - 15
+      - 16
+      - 35
+      4: 3.7.13
+      5: 0.12.11
+      8:
+      - 1
+      - 5
+algo_name:
+  desc: null
+  value: C_Encoder_v1
+description:
+  desc: null
+  value: RELEASE
+device:
+  desc: null
+  value: cuda:0
+emb_dim:
+  desc: null
+  value: 2
+emb_tau:
+  desc: null
+  value: 0.995
+encoder_batch_size:
+  desc: null
+  value: 128
+encoder_hidden_size:
+  desc: null
+  value:
+  - 256
+  - 256
+encoder_lr:
+  desc: null
+  value: 0.0003
+env_default_change_range:
+  desc: null
+  value: 3.0
+env_name:
+  desc: null
+  value: HalfCheetah-v2
+env_ood_change_range:
+  desc: null
+  value: 4.0
+gamma:
+  desc: null
+  value: 0.99
+inner_iter_num:
+  desc: null
+  value: 1
+log_confidence_coef:
+  desc: null
+  value: 10.0
+log_confidence_loss:
+  desc: null
+  value: true
+max_grad_norm:
+  desc: null
+  value: 10.0
+max_iter_num:
+  desc: null
+  value: 1000
+meta_lr:
+  desc: null
+  value: 0.01
+min_batch_size:
+  desc: null
+  value: 1000
+model_path:
+  desc: null
+  value: null
+n_support:
+  desc: null
+  value: 16
+ns_test_steps:
+  desc: null
+  value: 1000
+num_threads:
+  desc: null
+  value: 4
+policy_hidden_size:
+  desc: null
+  value:
+  - 128
+  - 256
+  - 128
+policy_learning_rate:
+  desc: null
+  value: 0.0003
+prob_confidence_coef:
+  desc: null
+  value: 0.1
+prob_confidence_loss:
+  desc: null
+  value: false
+random_num:
+  desc: null
+  value: 4000
+render:
+  desc: null
+  value: false
+sac_alpha:
+  desc: null
+  value: 1.0
+sac_mini_batch_size:
+  desc: null
+  value: 256
+sac_tau:
+  desc: null
+  value: 0.995
+seed:
+  desc: null
+  value: 1
+skip_max_len_done:
+  desc: null
+  value: true
+start_train_num:
+  desc: null
+  value: 20000
+task_name:
+  desc: null
+  value: CodeTest
+task_num:
+  desc: null
+  value: 20
+task_per_batch:
+  desc: null
+  value: 10
+test_sample_num:
+  desc: null
+  value: 4000
+test_task_num:
+  desc: null
+  value: 10
+transition_deterministic:
+  desc: null
+  value: false
+transition_hidden_size:
+  desc: null
+  value:
+  - 128
+  - 256
+  - 128
+update_encoder_interval:
+  desc: null
+  value: 1
+update_sac_interval:
+  desc: null
+  value: 1
+use_remote:
+  desc: null
+  value: false
+use_wandb:
+  desc: null
+  value: true
+value_hidden_size:
+  desc: null
+  value:
+  - 128
+  - 256
+  - 128
+value_learning_rate:
+  desc: null
+  value: 0.001
+varying_params:
+  desc: null
+  value:
+  - gravity

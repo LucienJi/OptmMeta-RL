@@ -1,0 +1,24 @@
+{  
+    "use_remote": false, "use_wandb": false, 
+    "varying_params": ["gravity"], 
+    "task_num": 10, 
+    "test_task_num": 10, 
+    "test_sample_num": 4000, 
+    "ns_test_steps": 300,   
+    "algo_name": "MixedEnvcoder", "env_name": "HalfCheetah-v2", 
+    "task_name":"MujocoTest",
+    "envcoder_type": "Mixed", 
+    "inner_iter_num": 1, 
+    "update_interval": 100, 
+    "max_iter_num": 3, 
+    "adaptive_type":"1",
+    "device": "cpu",
+    "encoder_deterministic": true, "beta": 0.1, 
+    "consistency_loss": false, "consistency_coef": 50.0,
+    "diversity_loss": false, "diversity_coef": 0.025,
+    "policy_hidden_size": [128,128],
+    "value_hidden_size": [128,128],
+    "emb_dim": 2,
+    "max_grad_norm": 0.5
+
+}

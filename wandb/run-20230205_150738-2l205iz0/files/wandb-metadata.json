@@ -1,0 +1,32 @@
+{
+    "os": "Darwin-20.5.0-x86_64-i386-64bit",
+    "python": "3.7.13",
+    "heartbeatAt": "2023-02-05T07:07:41.879650",
+    "startedAt": "2023-02-05T07:07:38.142011",
+    "docker": null,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [
+        "--ip=127.0.0.1",
+        "--stdin=9003",
+        "--control=9001",
+        "--hb=9000",
+        "--Session.signature_scheme=\"hmac-sha256\"",
+        "--Session.key=b\"ff3f1450-9fc3-4656-b268-2042019f099b\"",
+        "--shell=9002",
+        "--transport=\"tcp\"",
+        "--iopub=9004",
+        "--f=/Users/jijingtian/Library/Jupyter/runtime/kernel-v2-15367VFplz6BXB0YO.json"
+    ],
+    "state": "running",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/LucienJi/RL.git",
+        "commit": "a5fbf8b68d415e20961a155c0880e1673ba5d7aa"
+    },
+    "email": "984592975@qq.com",
+    "root": "/Users/jijingtian/Documents/GitHub/RL",
+    "host": "jijingtians-MBP.lan",
+    "username": "jijingtian",
+    "executable": "/Users/jijingtian/opt/anaconda3/envs/meta/bin/python"
+}
