@@ -1,0 +1,18 @@
+[34mWarning: Log dir data/log_file/HalfCheetah-v2-C_Encoder_v1-CodeTest already exists! Storing info there anyway.
+rm -rf data/log_file/HalfCheetah-v2-C_Encoder_v1-CodeTest/events.out.tfevents*
+objc[17788]: Class GLFWApplicationDelegate is implemented in both /Users/jijingtian/opt/anaconda3/envs/meta/lib/python3.7/site-packages/mujoco_py/binaries/macos/mujoco210/bin/libglfw.3.dylib (0x14b499778) and /usr/local/Cellar/glfw/3.3.3/lib/libglfw.3.3.dylib (0x14b505f40). One of the two will be used. Which one is undefined.
+objc[17788]: Class GLFWWindowDelegate is implemented in both /Users/jijingtian/opt/anaconda3/envs/meta/lib/python3.7/site-packages/mujoco_py/binaries/macos/mujoco210/bin/libglfw.3.dylib (0x14b499700) and /usr/local/Cellar/glfw/3.3.3/lib/libglfw.3.3.dylib (0x14b505f68). One of the two will be used. Which one is undefined.
+objc[17788]: Class GLFWContentView is implemented in both /Users/jijingtian/opt/anaconda3/envs/meta/lib/python3.7/site-packages/mujoco_py/binaries/macos/mujoco210/bin/libglfw.3.dylib (0x14b4997a0) and /usr/local/Cellar/glfw/3.3.3/lib/libglfw.3.3.dylib (0x14b505fb8). One of the two will be used. Which one is undefined.
+objc[17788]: Class GLFWWindow is implemented in both /Users/jijingtian/opt/anaconda3/envs/meta/lib/python3.7/site-packages/mujoco_py/binaries/macos/mujoco210/bin/libglfw.3.dylib (0x14b499818) and /usr/local/Cellar/glfw/3.3.3/lib/libglfw.3.3.dylib (0x14b506030). One of the two will be used. Which one is undefined.
+Defaul config path: configs/default_config.json
+Use additional config
+[32mLogging data to data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest/progress.txt
+my output path is data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest
+directory data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest exists, checking identity...
+data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest/parameter.json not exists
+config is completely same, file will be overwrited anyway...
+save json config to data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest/parameter.json
+save readable config to data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest/parameter.txt
+[34mWarning: Log dir data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest already exists! Storing info there anyway.
+rm -rf data/log_file/HalfCheetah-v2-C_Encoder_v1-LocalTest/events.out.tfevents*
+[34m[1mwandb[39m[22m: [33mWARNING[39m When using several event log directories, please call wandb.tensorboard.patch(root_logdir="...") before wandb.init

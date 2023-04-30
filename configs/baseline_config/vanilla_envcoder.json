@@ -1,0 +1,27 @@
+{  
+    "use_remote": false, "use_wandb": true, 
+    "varying_params": ["gravity"], 
+    "task_num": 20, 
+    "test_task_num": 10, 
+    "test_sample_num": 4000, 
+    "ns_test_steps": 300,   
+    "algo_name": "Vanilla-Video", "env_name": "HalfCheetah-v2", 
+    "task_name":"VideoTest",
+    "envcoder_type":"Vanilla",
+    "inner_iter_num": 1, 
+    "update_interval": 1, 
+    "max_iter_num": 10, 
+    "adaptive_type":"1",
+    "adaptive_envtracker": false,
+    "device": "cuda:0",
+    "encoder_deterministic": true, "beta": 0.1, 
+    "consistency_loss": false, "consistency_coef": 50.0,
+    "diversity_loss": false, "diversity_coef": 0.025,
+    "policy_hidden_size": [128,256,128],
+    "value_hidden_size": [128,256,128],
+    "n_shot": 16,
+    "encoder_hidden_size": [256, 256], 
+    "transition_hidden_size": [128, 256, 128],
+    "emb_dim": 2
+
+}
