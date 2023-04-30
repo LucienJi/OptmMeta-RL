@@ -9,5 +9,7 @@ log_file
 baselines.tar.gz
 *.pt
 wandb/
+data/
+configs/
 
 

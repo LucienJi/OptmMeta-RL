@@ -119,6 +119,19 @@ class Buffer(object):
         if with_tensor:
             data = torch.from_numpy(data).to(device).float()
         return self.array_to_transition(data)
+    
+    def sample_query(self,batch_size,M_to_predict,with_tensor = True,device = 'cpu'):
+        all_points = self.all_points(M_to_predict)
+        indices = np.random.choice(all_points, batch_size, replace=True if batch_size > all_points.shape[0] else False)
+        all_indices = []
+        for ind in indices:
+            all_indices += list(range(ind-M_to_predict,ind)) 
+        data = self.memory_buffer[all_indices]
+        data = data.reshape(batch_size,M_to_predict,-1)
+        if with_tensor:
+            data = torch.from_numpy(data).to(device).float()
+        query = self.array_to_transition(data)
+        return query
 
     def _sample_batch_helper(self,batch_size = None):
         if batch_size is not None:
@@ -243,6 +256,9 @@ class MetaBuffer(object):
     def sample_batch(self,id,batch_size,with_tensor = True,device = 'cpu'):
         assert id in self.task_id_list
         return self.task_buffers[id].sample_batch(batch_size,with_tensor = with_tensor,device = device)
+    def sample_query(self,id,batch_size,M_to_predict,with_tensor = True,device = 'cpu'):
+        assert id in self.task_id_list
+        return self.task_buffers[id].sample_query(batch_size,M_to_predict,with_tensor = with_tensor,device = device)
     def sample_support(self,id,bz,n_support,M_to_predict,with_tensor ,device):
         assert id in self.task_id_list
         return self.task_buffers[id].sample_support(bz,n_support,M_to_predict,with_tensor ,device )

@@ -17,14 +17,10 @@ from log_util.logger import Logger
 
 from parameter.private_config import SKIP_MAX_LEN_DONE, NON_STATIONARY_PERIOD, NON_STATIONARY_INTERVAL
 from parameter.private_config import ENV_DEFAULT_CHANGE
-from envs.grid_world_general import RandomGridWorldPlat
 import envencoder
 from envencoder.envcoder import C_Envcoder
-from gym.envs.registration import register
 from envs.nonstationary_env import NonstationaryEnv
-register(
-id='GridWorldPlat-v2', entry_point=RandomGridWorldPlat
-)
+
 
 class Worker:
     def __init__(self,parameter: Parameters, env_name='Hopper-v2', seed=0, policy_type=Actor,encoder_type = C_Envcoder ,

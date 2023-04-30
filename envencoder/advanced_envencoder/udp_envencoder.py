@@ -30,10 +30,14 @@ class UdpEnvencoder:
         self.optm = optim.Adam(self.envcoder_parameters, lr= parameter.encoder_lr, amsgrad=False)
         self.device = parameter.device
     
-    def sample(self,obs,act,obs2,rew):
+    def add_and_update(self,id,embedding):
+        self.encoder.update_emb(embedding.detach(),id)
+
+    def sample(self,obs,act,obs2,rew,deterministic = False,id = None):
         """
-        obs: bz,dim
-        do not support n_history
+        obs: n_history,dim
+        可以是 没有 history的obs，需要 expand dim
+        但是 return 的时候只能输出 (1,dim) ，对应的是 history 中最好的那个
         """
         if obs.ndim == 1:
             obs = obs.unsqueeze(0)
@@ -41,13 +45,23 @@ class UdpEnvencoder:
             obs2 = obs2.unsqueeze(0)
             rew = rew.unsqueeze(0)
         with torch.no_grad():
-            chosen_embedding,chosen_dist,idx,chosen_mean,distance = self.encoder.inference(obs,act,obs2,rew,None)
-        ## TODO chose the best one, corressponding to the best distance
+            chosen_embedding,chosen_dist,idx,chosen_mean,distance = self.encoder.inference(obs,act,obs2,rew,id = id )
+        
+        if id is not None:
+            chosen_embedding = chosen_embedding.mean(dim=0,keepdim=True)
+            chosen_mean = chosen_mean.mean(dim=0,keepdim=True)
+        else:
+            mode = torch.mode(idx,dim = 0)
+            chosen_embedding = chosen_embedding[mode.indices]
+            chosen_mean = chosen_mean[mode.indices]
+        if deterministic:
+            chosen_embedding = chosen_mean
+        #! 注意这里是
         return chosen_embedding
-            
+    
     def compute_loss(self,
                      support_obs,support_act,support_obs2,support_rew,
-                     obs_to_predict,act_to_predict,obs2_to_predict,
+                     obs_to_predict,act_to_predict,obs2_to_predict,rew_to_predict,
                      env_id, distance_entropy = True):
         """
         Support: 
@@ -58,28 +72,38 @@ class UdpEnvencoder:
             2. M_to_predict is the number of transition to predict
         """
         bz = support_obs.shape[0]
-        M = obs_to_predict.shape[1]
         chosen_embedding,chosen_dist,idx,chosen_mean,distance = self.encoder.inference(support_obs,support_act,support_obs2,support_rew,env_id)
         
-        emb_to_use = 
+        if obs_to_predict.ndim == 3:
+            emb_to_use = chosen_embedding.unsqueeze(1).expand(-1,obs_to_predict.shape[1],-1)
+        else:
+            emb_to_use = chosen_embedding
         
-        
-        loss,info = self.world_decoder._compute_loss(support_obs,support_act,support_obs2,support_rew,chosen_embedding)
+        loss,info = self.world_decoder._compute_loss(obs_to_predict,
+                                                     act_to_predict,
+                                                     obs2_to_predict,
+                                                     rew_to_predict,
+                                                     emb_to_use)
         if distance_entropy:
-            dist = self.encoder.calc_distance(support_obs,support_act,support_obs2,support_rew,no_grad=True)
+            # dist = self.encoder.calc_distance(support_obs,support_act,support_obs2,support_rew,no_grad=True)
+            dist = distance
             ent_loss = calc_distance_entropy(dist).mean()
             loss = loss + ent_loss * 0.1 
             info['dist_entrop'] = ent_loss.item()
-        return loss,info
+        return loss,info,chosen_embedding
     
     def to(self,device = torch.device('cpu')):
         self.encoder.to(device)
         self.world_decoder.to(device)
-    def save(self,path):
+    def save(self,path = None):
+        if path is None:
+            path = self.parameter.model_path
         self.encoder.save(os.path.join(path, 'encoder.pt'))
         self.world_decoder.save(os.path.join(path, 'world_decoder.pt')) 
         torch.save(self.optm.state_dict(), os.path.join(path, 'encoder_optim.pt'))
     def load(self,path):
+        if path is None:
+            path = self.parameter.model_path
         self.encoder.load(os.path.join(path, 'encoder.pt'))
         self.world_decoder.load(os.path.join(path, 'world_decoder.pt')) 
         self.optm.load_state_dict(torch.load(os.path.join(path, 'encoder_optim.pt')))

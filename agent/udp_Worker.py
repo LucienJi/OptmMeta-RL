@@ -22,6 +22,7 @@ class Udp_Worker(Base_Worker):
         super().__init__(parameter, env_name, seed, policy_type, encoder_type, env_decoration, env_tasks, non_stationary, fix_env_setting)
     
     def set_action(self, action, pred_next_state, env_ind, render, need_info):
+        
         next_state, reward, done, info = self.env.step(self.env.denormalization(action))
         self.tracker.update_history(self.state,action,next_state,reward,pred_next_state)
         ## update history tracker
@@ -48,22 +49,31 @@ class Udp_Worker(Base_Worker):
             return next_state, reward, done, self.state, cur_task_ind, cur_env_param, current_env_step, info
         return next_state, reward, done, self.state, cur_task_ind, cur_env_param, current_env_step
 
-    def get_action(self, state, policy:Actor, encoder:UdpEnvencoder, deterministic, random, device):
+    def get_action(self, state, policy:Actor, encoder:UdpEnvencoder, deterministic, random,with_moco, device):
         # state.shape = (dim,)
         with torch.no_grad():
             support = self.tracker.feed_support(device)
-            emb = encoder.sample(support.obs, support.act, support.obs2, support.rew)
+            emb = encoder.sample(support.obs, support.act, support.obs2, support.rew,deterministic=deterministic)
+            state = state.reshape(1,-1)
             if random:
                 action = self.env.normalization(self.action_space.sample())
             else:
                 action = policy.act(x = torch.from_numpy(state).to(device = device,dtype=torch.float32),
                                         emb = emb,deterministic=deterministic).to(torch.device('cpu')).detach().numpy()
+            #! 这里默认不使用 vector envs 
+            
+            action = action.reshape(1,-1)
+            # print(" Shape Check, history Problem",emb.shape,state.shape,action.shape)
             pred_next_state = encoder.world_decoder.sample_transition(obs = torch.from_numpy(state).to(device = device,dtype=torch.float32),
                                                             act = torch.from_numpy(action).to(device = device,dtype=torch.float32),
                                                             emb = emb,deterministic=True).detach().to(torch.device('cpu')).numpy()
             pred_reward = encoder.world_decoder.sample_reward(obs = torch.from_numpy(state).to(device = device,dtype=torch.float32),
                                                             act = torch.from_numpy(action).to(device = device,dtype=torch.float32),
                                                             emb = emb,deterministic=True).detach().to(torch.device('cpu')).numpy()
+        state = state.reshape(-1)
+        action = action.reshape(-1)
+        pred_next_state = pred_next_state.reshape(-1)
+        pred_reward = pred_reward.reshape(-1)
         return action,pred_next_state,pred_reward,emb.detach().cpu().numpy()
             
     

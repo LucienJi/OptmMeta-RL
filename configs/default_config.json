@@ -13,7 +13,7 @@
 "log_confidence_loss": true, "log_confidence_coef": 0.1, 
 "prob_confidence_loss": false, "prob_confidence_coef": 0.1, 
 "encoder_lr": 0.0003, "emb_tau": 0.995, 
-
+"M_to_predict":5,
 "sac_mini_batch_size": 256, "max_grad_norm": 10.0, 
 "policy_hidden_size": [256, 256], 
 "policy_learning_rate": 0.0003, "sac_alpha": 1.0, "sac_tau": 0.995, 

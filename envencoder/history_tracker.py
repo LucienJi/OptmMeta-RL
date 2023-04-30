@@ -26,7 +26,12 @@ class EnvTracker(object):
 		self.rew_support = deque(maxlen = self.history_length)
 		self.pred_error_support = deque(maxlen= self.history_length)
 	def feed_support(self,device):
-		support = Support(from_queue(self.obs_support,device),from_queue(self.act_support,device),from_queue(self.obs2_support,device),from_queue(self.rew_support,device))
+		# print(self.obs_support,self.act_support,self.obs2_support,self.rew_support)
+		support = Support(
+			from_queue(self.obs_support,device),
+		    from_queue(self.act_support,device),
+			from_queue(self.obs2_support,device),
+			from_queue(self.rew_support,device))
 		return support
 
 	def update_history(self,obs,act,obs2,rew,pred):
@@ -34,6 +39,9 @@ class EnvTracker(object):
 		self.obs_support.append(obs)
 		self.act_support.append(act)
 		self.obs2_support.append(obs2)
+		#! rew is a scalar
+		if type(rew) != np.ndarray:
+			rew = np.array([rew]).reshape(1,)
 		self.rew_support.append(rew)
 		self.pred_error_support.append(err)
 	def init(self):

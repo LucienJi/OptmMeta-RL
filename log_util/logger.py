@@ -19,8 +19,8 @@ class Logger(LoggerBase):
             self.parameter = parameter
         else:
             self.parameter = Parameters()
-        self.base_dir = get_base_path() if base_dir is None else base_dir
-        self.output_dir = os.path.join( self.base_dir, 'log_file', self.parameter.short_name)
+        self.base_dir = "data" if base_dir is None else base_dir
+        self.output_dir = os.path.join( self.base_dir, self.parameter.short_name,"logs")
         if log_to_file:
             if not os.path.exists(self.output_dir):
                 os.makedirs(self.output_dir)
@@ -34,37 +34,20 @@ class Logger(LoggerBase):
         self.current_data = {}
         self.logged_data = set()
 
-        self.model_output_dir = self.get_model_output_path(self.parameter,self.base_dir)
+        self.model_output_dir = self.parameter.model_path
         self.log(f"my output path is {self.output_dir}")
 
-        self.parameter.set_config_path(self.output_dir)
-        if not os.path.exists(self.output_dir):
-            self.log(f'directory {self.output_dir} does not exist, create it...')
-        else:
-            self.log(f'directory {self.output_dir} exists, checking identity...')
-            if (self.parameter.check_identity(need_decription=True) or self.parameter.differences is None) \
-                    and (not force_backup):
-                self.log(f'config is completely same, file will be overwrited anyway...')
-            else:
-                self.log(f'config is not same, file will backup first...')
-                diffs = self.parameter.differences
-                self.log(f'difference appears in {diffs}')
-                backup_dir = os.path.join( self.base_dir, "log_file", f"backup_{self.parameter.exec_time}")
-                if not os.path.exists(backup_dir):
-                    os.makedirs(backup_dir)
-                system(f"cp -r {self.output_dir} {backup_dir}", lambda x: self.log(x))
-        self.parameter.save_config()
+        self.parameter.save_config(self.output_dir)
         if self.parameter.use_wandb:
             import wandb
             self.run = wandb.init(
                 project="my-test-project", 
                 entity="jingtianji",
-                config= {key:getattr(self.parameter,key) for key in self.parameter.arg_names},
+                config= {key:getattr(self.parameter,key) for key in self.parameter.args_name},
                 tags=[self.parameter.env_name],
                 group=self.parameter.task_name,
                 sync_tensorboard=True,
-                name=self.parameter.algo_name,
-                # job_type=self.parameter.task_name,
+                name=self.parameter.short_name,
                 monitor_gym=False,
                 save_code=False,
           )
@@ -75,38 +58,7 @@ class Logger(LoggerBase):
     
     def finish(self):
         self.tb.close()
-        # if self.parameter.use_wandb:
-        #     import wandb
-        #     wandb.finish()
 
-    @staticmethod
-    def get_model_output_path(parameter,base_dir = None):
-        if base_dir is None:
-            output_dir = os.path.join(get_base_path(), 'log_file', parameter.short_name)
-        else:
-            output_dir = os.path.join(base_dir, 'log_file', parameter.short_name)
-        return os.path.join(output_dir, 'model')
-
-    @staticmethod
-    def get_replay_buffer_path(parameter,base_dir = None):
-        if base_dir is None:
-            output_dir = os.path.join(get_base_path(), 'log_file', parameter.short_name)
-        else:
-            output_dir = os.path.join(base_dir, 'log_file', parameter.short_name)
-        return os.path.join(output_dir, 'replay_buffer.pkl')
-
-    def backup_code(self):
-        base_path = self.base_dir
-        things = []
-        for item in os.listdir(base_path):
-            p = os.path.join(base_path, item)
-            if not item.startswith('.') and not item.startswith('__') and not item == 'log_file' and not item == 'baselines':
-                things.append(p)
-        code_path = os.path.join(self.output_dir, 'codes')
-        if not os.path.exists(code_path):
-            os.makedirs(code_path)
-        for item in things:
-            system(f'cp -r {item} {code_path}', lambda x: self.log(f'backing up: {x}'))
 
     def log(self, *args, color=None, bold=True):
         super(Logger, self).log(*args, color=color, bold=bold)

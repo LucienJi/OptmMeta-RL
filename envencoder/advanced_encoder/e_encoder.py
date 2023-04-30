@@ -13,6 +13,7 @@ MAX_LOGSTD = 2
 
 
 class E_Encoder(nn.Module):
+	#! 根据单个 (s,a,s',r) 计算 feature
 	def __init__(self,obs_dim,act_dim,feature_dim,hidden_size = (256,256),deterministic = True):
 		super().__init__()
 		self.obs_dim = obs_dim 
@@ -45,9 +46,7 @@ class E_Encoder(nn.Module):
 		self.load_state_dict(torch.load(path, map_location=map_location))
 
 class UDP_Encoder(E_Encoder):
-	"""
-	Predefined Maximum Environment, so that batch operation should be faster ?
-	"""
+	#! 首先将 transition 转化为 high-dim feature 
 	def __init__(self, obs_dim, act_dim, emb_dim,max_env_num, hidden_size=[256, 256], learnable_length_scale=True,length_scale = 1.0,
 	      tau = 0.95):
 		feature_dim = 128
@@ -55,13 +54,13 @@ class UDP_Encoder(E_Encoder):
 		self.emb_dim = emb_dim 
 		self.max_env_num = max_env_num
 		self.W = nn.Parameter(torch.normal(torch.zeros(max_env_num, emb_dim, feature_dim), 0.05),requires_grad=True)
-		self.register_buffer("n_env",torch.zeros(1,dtype = torch.long))
-		self.register_buffer("N", torch.ones(max_env_num)) ## counting 
+		self.register_buffer("n_env",torch.zeros(1,dtype = torch.long))   #! 记录当前有多少个 env
+		self.register_buffer("N", torch.ones(max_env_num)) #! 每个 env 记录过的 embedding 数量
 		self.register_buffer(
-			"m", torch.normal(torch.zeros(max_env_num,emb_dim), 1) ## EMA mean
+			"m", torch.normal(torch.zeros(max_env_num,emb_dim), 1) #! embedding 的累积和
 		)
 		self.register_buffer(
-			"e", torch.normal(torch.zeros(max_env_num,emb_dim), 1) ## m/M
+			"e", torch.normal(torch.zeros(max_env_num,emb_dim), 1) #! embedding 均值
 		)
 		self.learnable_length_scale = learnable_length_scale
 		self.m = self.m * self.N.unsqueeze(1) ## ? for the computatin conveniencee
@@ -78,7 +77,7 @@ class UDP_Encoder(E_Encoder):
 			self.device = device
 			super().to(device)
 
-	def add_env(self,n):
+	def add_env(self,n = 1):
 		self.n_env += torch.tensor(n,dtype = torch.long,device=self.device)
 
 	def update_emb(self,embs,id):
@@ -133,31 +132,21 @@ class UDP_Encoder(E_Encoder):
 		sigma = self._get_sigma() # n_env
 		diff = f2e - embedding.unsqueeze(0)
 		distance = (-(diff**2).mean(-1)).div(2 * sigma**2).exp() ## 0 ~ 1.0, shae (bz,n_class,)
-		if id is None:
+		if id is None or id >= self.n_env.item():
 			idx = torch.argmin(distance,dim = 1,keepdim = True) ## bz,1
 			chosen_mean = torch.gather(embedding,0,idx.expand((idx.shape[0],embedding.shape[-1]))).squeeze(1)
 		else:
-			assert id < self.n_env.item()
 			idx = torch.tensor(id,dtype = torch.long,device = self.device).unsqueeze(0).expand((distance.shape[0],1))
 			chosen_mean = embedding[id].unsqueeze(0).expand((distance.shape[0],-1))
 		expanded_idx = idx.unsqueeze(-1).expand((-1,1,embedding.shape[-1]))
 		chosen_embedding = torch.gather(f2e,-2,expanded_idx).squeeze(-2) 
 		chosen_dist = torch.gather(distance,-1,idx)
-
-		
-		if id is None:
-			idx = torch.argmin(distance,dim = 1,keepdim = True) ## bz,1
-			expanded_idx = idx.unsqueeze(-1).expand((-1,1,embedding.shape[-1]))
-			chosen_embedding = torch.gather(f2e,-2,expanded_idx).squeeze(-2)
-			chosen_dist = torch.gather(distance,-1,idx)
-		else:
-			chosen_embedding = embedding[id].unsqueeze(0).expand((distance.shape[0],-1))
-			chosen_dist = distance[:,id].unsqueeze(-1)
-
 		
 		return chosen_embedding,chosen_dist,idx,chosen_mean,distance
 	
-
+	@property
+	def num_envs(self):
+		return self.n_env.item()
 	
 	def save(self, path):
 		if not os.path.exists(os.path.dirname(path)):
