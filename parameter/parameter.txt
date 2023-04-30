@@ -1,0 +1,62 @@
+本机localhost, ip为127.0.0.1
+目前实验目的为RELEASE
+实验简称: HalfCheetah-v2-baseline-CodeTest_N
+commit id: a5fbf8b68d415e20961a155c0880e1673ba5d7aa
+use_remote: False
+use_wandb: False
+**task_name**: CodeTest
+**algo_name**: baseline
+**env_name**: HalfCheetah-v2
+skip_max_len_done: True
+task_num: 20
+test_task_num: 10
+test_sample_num: 4000
+ns_test_steps: 1000
+env_default_change_range: 3.0
+env_ood_change_range: 4.0
+varying_params: ['gravity']
+model_path: None
+render: False
+gamma: 0.99
+num_threads: 4
+seed: 1
+random_num: 4000
+start_train_num: 20000
+inner_iter_num: 1
+update_sac_interval: 1
+update_encoder_interval: 1
+max_iter_num: 2000
+min_batch_size: 1000
+transition_hidden_size: [128, 256, 128]
+transition_deterministic: True
+emb_dim: 2
+encoder_batch_size: 128
+n_support: 10
+meta_lr: 0.01
+task_per_batch: 10
+encoder_hidden_size: [256, 256]
+log_confidence_loss: True
+log_confidence_coef: 0.1
+prob_confidence_loss: True
+prob_confidence_coef: 0.1
+encoder_lr: 0.0003
+emb_tau: 0.995
+sac_mini_batch_size: 256
+max_grad_norm: 10.0
+policy_hidden_size: [256, 256]
+policy_learning_rate: 0.0003
+sac_alpha: 1.0
+sac_tau: 0.995
+value_learning_rate: 0.001
+value_hidden_size: [256, 256]
+device: cpu
+EXPERIMENT_TARGET: RELEASE
+MAIN_MACHINE_IP: 114.212.22.189
+SKIP_MAX_LEN_DONE: True
+FC_MODE: False
+ENV_DEFAULT_CHANGE: 3.0
+USE_TQDM: False
+NON_STATIONARY_PERIOD: 100
+NON_STATIONARY_INTERVAL: 10
+SHORT_NAME_SUFFIX: N
+
