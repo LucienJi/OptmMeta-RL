@@ -1,6 +1,6 @@
 {"use_remote": false, 
 "use_wandb": false, 
-"task_name": "Toy_Test_WithMAML", "algo_name": "Opt_Encoder", "env_name": "GridWorldPlat-v2", 
+"task_name": "CodeTest", "algo_name": "UDPEncoder", "env_name": "GridWorldPlat-v2", 
 "skip_max_len_done": true, 
 "task_num": 20, "test_task_num": 10, "test_sample_num": 4000, "ns_test_steps": 1000, "env_default_change_range": 3.0, "env_ood_change_range": 4.0, 
 "varying_params": ["vel"],
@@ -18,5 +18,5 @@
 "with_transition":true,
 "maml_ratio":0.01,
 "target_emb_ratio":0.2,
-"device": "cpu"
+"device": "cuda:0"
 }

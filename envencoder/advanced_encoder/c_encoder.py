@@ -12,6 +12,172 @@ MAX_LOGSTD = 2
 
 #LOG_STD_MAX = 2
 # LOG_STD_MIN = -1.5
+
+class UdpReward(nn.Module):
+	def __init__(self,obs_dim, act_dim, emb_dim,hidden_size, device) -> None:
+		super().__init__()
+		self.net1 = mlp([obs_dim + act_dim + emb_dim,]+hidden_size,nn.Tanh,nn.Tanh)
+		self.mean = nn.Linear(hidden_size[-1],1)
+		self.device = torch.device('cpu')
+	def to(self, device):
+		if not device == self.device:
+			self.device = device
+			super().to(device)
+	def _default_forward(self,obs,act,emb = None):
+		x = torch.cat((obs,act,emb),dim = -1)
+		mean = self.mean(self.net1(x))
+		return mean
+	def forward(self,obs,act,emb):
+		mean = self._default_forward(obs,act,emb)
+		return mean 
+	def sample(self,obs,act,emb,deterministic):
+		mean = self._default_forward(obs,act,emb)
+		return mean
+
+	def _compute_loss(self,obs,act,reward,emb = None):
+		with torch.no_grad():
+			y_pred = self.sample(obs,act,emb,deterministic=True).cpu().numpy()
+			y_true = reward.cpu().numpy() 
+			assert y_pred.shape == y_true.shape
+			var_y = np.var(y_true)
+			prediction_error = ((y_pred - y_true)**2).mean()
+			explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
+		info = {}
+		mean = self._default_forward(obs,act,emb)
+		loss = F.mse_loss(mean,reward,reduction='mean')
+		info['reward_loss'] = np.round(loss.item(),4)
+		info['reward_explained_variance'] = np.round(explained_var,4)
+		info['reward_prediction_error'] = np.round(prediction_error,4)
+		return loss,info
+
+	def save(self, path):
+		if not os.path.exists(os.path.dirname(path)):
+			os.makedirs(os.path.dirname(path))
+		torch.save(self.state_dict(), path)
+
+	def load(self, path, **kwargs):
+		map_location = None
+		if 'map_location' in kwargs:
+			map_location = kwargs['map_location']
+		self.load_state_dict(torch.load(path, map_location=map_location))
+		
+	@staticmethod
+	def make_config_from_param(parameter):
+		return dict(
+			emb_dim = parameter.emb_dim,
+			hidden_size = parameter.transition_hidden_size,
+			device = parameter.device
+		)
+
+class UdpTransition(Transition):
+	def __init__(self, obs_dim, act_dim, emb_dim,hidden_size, device):
+		super().__init__(obs_dim, act_dim, emb_dim, False, device)
+		self.net1 = mlp([obs_dim + act_dim + emb_dim,]+hidden_size,nn.Tanh,nn.Tanh)
+		self.mean = nn.Linear(hidden_size[-1],obs_dim)
+		self.device = torch.device('cpu')
+	def to(self, device):
+		if not device == self.device:
+			self.device = device
+			super().to(device)
+
+	def _default_forward(self,obs,act,emb = None):
+		x = torch.cat((obs,act,emb),dim = -1)
+		mean = self.mean(self.net1(x))
+		#! here, we predict the delta, instead of the next obs
+		mean = obs + mean 
+		return mean
+	
+	def forward(self,obs,act,emb):
+		mean = self._default_forward(obs,act,emb)
+		obs2 = mean 
+		return obs2
+
+	def _compute_loss(self,obs,act,obs2,emb = None):
+		with torch.no_grad():
+			y_pred = self.sample(obs,act,emb,deterministic=True).cpu().numpy()
+			y_true = obs2.cpu().numpy() 
+			assert y_pred.shape == y_true.shape
+			var_y = np.var(y_true)
+			prediction_error = ((y_pred - y_true)**2).mean()
+			explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
+		mean = self._default_forward(obs,act,emb)
+		info = dict()
+		loss = F.mse_loss(mean,obs2,reduction='mean')
+
+		info['dyanmic_loss'] = np.round(loss.item(),4)
+		info['dynamic_explained_variance'] = np.round(explained_var,4)
+		info['dynamic_prediction_error'] = np.round(prediction_error,4)
+		return loss,info
+	
+	def sample(self,obs,act,emb,deterministic):
+		mean= self._default_forward(obs,act,emb)
+		return mean
+
+	@staticmethod
+	def make_config_from_param(parameter):
+		return dict(
+			emb_dim = parameter.emb_dim,
+			hidden_size = parameter.transition_hidden_size,
+			device = parameter.device
+		)
+
+class UDP_Decoder(nn.Module):
+	def __init__(self,obs_dim,act_dim,with_reward,with_transition,emb_dim,hidden_size,device):
+		super().__init__()
+		assert with_reward or with_transition
+		self.with_reward,self.with_transition = with_reward,with_transition
+		self.reward = UdpReward(obs_dim,act_dim,emb_dim,hidden_size,device) 
+		self.transition = UdpTransition(obs_dim,act_dim,emb_dim,hidden_size,device) 
+		self.device = torch.device('cpu')
+	def to(self, device):
+		if not device == self.device:
+			self.device = device
+			super().to(device)
+	def sample_reward(self,obs,act,emb,deterministic):
+		if not self.with_reward: 
+			emb = emb.detach()
+		return self.reward.sample(obs,act,emb,deterministic)
+	def sample_transition(self,obs,act,emb,deterministic):
+		if not self.with_transition: 
+			emb = emb.detach()
+		return self.transition.sample(obs,act,emb,deterministic)
+	def _compute_loss(self,obs,act,obs2,rew,emb = None):
+		loss,info = 0.0,{}
+		if not self.with_transition:
+			trans_emb = emb.detach()
+		else:
+			trans_emb = emb 
+		trans_loss,trans_info = self.transition._compute_loss(obs,act,obs2,trans_emb)
+		loss += trans_loss
+		info.update(trans_info)
+		if not self.with_reward:
+			rew_emb = emb.detach()
+		else:
+			rew_emb = emb
+		rew_loss,rew_info = self.reward._compute_loss(obs,act,rew,rew_emb) 
+		loss += rew_loss
+		info.update(rew_info)
+		return loss,info 
+	@staticmethod
+	def make_config_from_param(parameter):
+		return dict(
+			with_reward = parameter.with_reward,
+			with_transition = parameter.with_transition,
+			emb_dim = parameter.emb_dim,
+			hidden_size = parameter.transition_hidden_size,
+			device = parameter.device
+		)
+	def save(self, path):
+		if not os.path.exists(os.path.dirname(path)):
+			os.makedirs(os.path.dirname(path))
+		torch.save(self.state_dict(), path)
+
+	def load(self, path, **kwargs):
+		map_location = None
+		if 'map_location' in kwargs:
+			map_location = kwargs['map_location']
+		self.load_state_dict(torch.load(path, map_location=map_location))
+
 class World_Decoder(nn.Module):
 	def __init__(self,obs_dim,act_dim,with_reward,with_transition,emb_dim,hidden_size,device):
 		super().__init__()

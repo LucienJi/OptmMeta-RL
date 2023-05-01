@@ -154,11 +154,6 @@ class Parameters:
         
 
 
-        self.model_path = ""
-        parser.add_argument('--model_path', metavar='G',
-                            help='path of pre-trained model')
-        
-
         self.render = False
         parser.add_argument('--render', action='store_true', default=self.render,
                             help='render the environment')
@@ -234,14 +229,11 @@ class Parameters:
         self.n_support = 16
         parser.add_argument('--n_support', type=int, default=self.n_support, metavar='N',
                             help="history length for encoder")
-        
+        self.M_to_predict = 5
+        parser.add_argument('--M_to_predict',type=int, default=self.n_support, metavar='N',
+                            help="history length for encoder")
 
-
-        self.meta_lr = 0.01
-        parser.add_argument('--meta_lr', type=float, default=self.meta_lr, metavar='N',
-                            help="meta lr for meta-learning")
-        
-
+    
         self.task_per_batch = 10
         parser.add_argument('--task_per_batch', type=int, default=self.task_per_batch, metavar='N',
                             help="n task per batch for meta-learning")
@@ -250,14 +242,6 @@ class Parameters:
 
         self.encoder_hidden_size = [256,256]
         parser.add_argument('--encoder_hidden_size',nargs='+', type=int, default=self.encoder_hidden_size)
-
-        self.log_confidence_loss = True
-        parser.add_argument('--log_confidence_loss',nargs='+', type=bool, default=self.log_confidence_loss)
-
-        self.log_confidence_coef = 0.1
-        parser.add_argument('--log_confidence_coef',nargs='+', type=float, default=self.log_confidence_coef)
-
-        
 
 
         self.encoder_lr = 3e-4

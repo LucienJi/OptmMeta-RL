@@ -47,14 +47,14 @@ class E_Encoder(nn.Module):
 
 class UDP_Encoder(E_Encoder):
 	#! 首先将 transition 转化为 high-dim feature 
-	def __init__(self, obs_dim, act_dim, emb_dim,max_env_num, hidden_size=[256, 256], learnable_length_scale=True,length_scale = 1.0,
-	      tau = 0.95):
+	def __init__(self, obs_dim, act_dim, emb_dim,max_env_num, hidden_size=[256, 256], learnable_length_scale=False,length_scale = 1.0,
+	      tau = 0.9):
 		feature_dim = 128
 		super().__init__(obs_dim, act_dim, feature_dim, hidden_size,True)
 		self.emb_dim = emb_dim 
 		self.max_env_num = max_env_num
 		self.W = nn.Parameter(torch.normal(torch.zeros(max_env_num, emb_dim, feature_dim), 0.05),requires_grad=True)
-		self.register_buffer("n_env",torch.zeros(1,dtype = torch.long))   #! 记录当前有多少个 env
+		self.register_buffer("n_env",torch.zeros((),dtype = torch.long))   #! 记录当前有多少个 env
 		self.register_buffer("N", torch.ones(max_env_num)) #! 每个 env 记录过的 embedding 数量
 		self.register_buffer(
 			"m", torch.normal(torch.zeros(max_env_num,emb_dim), 1) #! embedding 的累积和
@@ -72,6 +72,11 @@ class UDP_Encoder(E_Encoder):
 		self.device = torch.device('cpu')
 		self.tau = tau 
 	
+	def get_emb(self,id,bz):
+		emb = self.e[id]
+		emb = emb.unsqueeze(0).expand((bz,self.emb_dim))
+		return emb 
+	
 	def to(self, device):
 		if not device == self.device:
 			self.device = device
@@ -85,9 +90,14 @@ class UDP_Encoder(E_Encoder):
 		bz = embs.shape[0]
 		self.N[id] = self.N[id] * self.tau + torch.tensor(bz,dtype = torch.long,device=self.device) * (1 - self.tau)
 		self.m[id] = self.m[id] * self.tau + embs.sum(0).detach() * (1 - self.tau)
-		self.e[id] = self.m[id] / self.N[id].unsqueeze(-1)
+		# self.e[id] = self.m[id] / self.N[id].unsqueeze(-1)
+		if embs.ndim == 2:
+			embs = embs.mean(0)
+		self.e[id] = self.e[id] * self.tau + embs * ( 1 - self.tau)
 
 	def _set_env(self,n):
+		if type(n) == np.ndarray:
+			n = n.reshape(-1)
 		self.n_env = torch.tensor(n,dtype = torch.long)
 
 	def _get_embedding(self):
@@ -113,36 +123,37 @@ class UDP_Encoder(E_Encoder):
 		return f2e
 
 
-	def calc_distance(self,obs,act,obs2,rew,no_grad = False):
+	def calc_correlation(self,obs,act,obs2,rew,no_grad = False):
 		f2e = self.calc_embedding(obs,act,obs2,rew,no_grad) # bz,n_env,dim
 		embedding = self._get_embedding() # n_env,dim
 		sigma = self._get_sigma() # n_env
 		diff = f2e - embedding.unsqueeze(0)
-		distance = (-(diff**2).mean(-1)).div(2 * sigma**2).exp() ## 0 ~ 1.0, represent the prob of being class i 
-		return distance # shape (bz,n_class,)
+		correlation = (-(diff**2).mean(-1)).div(2 * sigma**2).exp() ## 0 ~ 1.0, represent the prob of being class i 
+		return correlation # shape (bz,n_class,)
 
-	def inference(self,obs,act,obs2,rew,id = None):
+	def inference(self,obs,act,obs2,rew,id = None,with_all_emb = False):
 		"""
 		if given id, then only consider the given id 
 		else, consider all the envs, and infer from the distance
 		"""
 		assert self.n_env.item()> 0
-		f2e = self.calc_embedding(obs,act,obs2,rew) #
+		f2e = self.calc_embedding(obs,act,obs2,rew) # bz,n_env,dim
 		embedding = self._get_embedding() # n_env,dim
 		sigma = self._get_sigma() # n_env
-		diff = f2e - embedding.unsqueeze(0)
-		distance = (-(diff**2).mean(-1)).div(2 * sigma**2).exp() ## 0 ~ 1.0, shae (bz,n_class,)
+		distance = ((f2e - embedding.unsqueeze(0))**2).mean(-1)
+		correlation = (-distance.div(2 * sigma**2)).exp() ## 0 ~ 1.0, shae (bz,n_class,)
 		if id is None or id >= self.n_env.item():
-			idx = torch.argmin(distance,dim = 1,keepdim = True) ## bz,1
+			idx = torch.argmax(correlation,dim = 1,keepdim = True) ## bz,1
 			chosen_mean = torch.gather(embedding,0,idx.expand((idx.shape[0],embedding.shape[-1]))).squeeze(1)
 		else:
-			idx = torch.tensor(id,dtype = torch.long,device = self.device).unsqueeze(0).expand((distance.shape[0],1))
-			chosen_mean = embedding[id].unsqueeze(0).expand((distance.shape[0],-1))
+			idx = torch.tensor(id,dtype = torch.long,device = self.device).unsqueeze(0).expand((correlation.shape[0],1))
+			chosen_mean = embedding[id].unsqueeze(0).expand((correlation.shape[0],-1))
 		expanded_idx = idx.unsqueeze(-1).expand((-1,1,embedding.shape[-1]))
 		chosen_embedding = torch.gather(f2e,-2,expanded_idx).squeeze(-2) 
-		chosen_dist = torch.gather(distance,-1,idx)
-		
-		return chosen_embedding,chosen_dist,idx,chosen_mean,distance
+		chosen_cor = torch.gather(correlation,-1,idx)
+		if with_all_emb:
+			return chosen_embedding,chosen_cor,idx,chosen_mean,correlation,f2e
+		return chosen_embedding,chosen_cor,idx,chosen_mean,correlation
 	
 	@property
 	def num_envs(self):
@@ -164,7 +175,7 @@ class UDP_Encoder(E_Encoder):
 		return dict(
 			emb_dim = parameter.emb_dim,
 			hidden_size = parameter.encoder_hidden_size,
-			learnable_length_scale=True,
+			learnable_length_scale=False,
 			length_scale = 1.0,
 	      	tau = parameter.emb_tau
 		)

@@ -10,6 +10,8 @@ import math
 import pandas as pd
 from envencoder.actor import Actor
 import envencoder
+from envencoder.buffer import Memory
+
 from parameter.optm_Params import Parameters
 from agent.base_Worker import Base_Worker,Base_RemoteWorkers
 from parameter.private_config import  NON_STATIONARY_PERIOD, NON_STATIONARY_INTERVAL
@@ -20,7 +22,31 @@ from envs.nonstationary_env import NonstationaryEnv
 class Udp_Worker(Base_Worker):
     def __init__(self, parameter: Parameters, env_name='Hopper-v2', seed=0, policy_type=Actor, encoder_type=UdpEnvencoder,env_decoration = NonstationaryEnv, env_tasks=None, non_stationary=False, fix_env_setting=False) -> None:
         super().__init__(parameter, env_name, seed, policy_type, encoder_type, env_decoration, env_tasks, non_stationary, fix_env_setting)
-    
+    def collect_random_data(self,num_samples):
+        step_ct = 0
+        mem_list = []
+        mem = Memory()
+        self.reset(env_ind= None)
+        while step_ct < num_samples:
+            action = self.env.action_space.sample()
+            next_state, reward, done, info = self.env.step(action)
+            self.ep_len += 1
+            self.ep_cumrew += reward
+            cur_task_ind = self.task_ind
+            cur_env_param = self.env_param_vector
+            reward,done,cur_task_ind = np.array(reward).reshape(1,),np.array(done).reshape(1,),np.array(cur_task_ind).reshape(1,)
+            mem.push(self.state,action,next_state,reward,done,cur_task_ind,cur_env_param)
+            
+            if done:
+                state = self.reset()
+                self.state = state
+                mem_list.append(mem)
+                mem = Memory()
+            else:
+                self.state = next_state
+            step_ct += 1
+        return mem_list
+
     def set_action(self, action, pred_next_state, env_ind, render, need_info):
         
         next_state, reward, done, info = self.env.step(self.env.denormalization(action))
@@ -120,3 +146,15 @@ class Udp_Workers(Base_RemoteWorkers):
         ids = np.concatenate(ids,axis =0)
         df = logs
         return df,embs,ids
+    
+    def collect_random_data(self,total_samples):
+        samples_per_work = np.ceil(total_samples/len(self.workers))
+        if self.use_remote:
+            tasks = [worker.collect_random_data.remote(samples_per_work) for worker in self.workers]
+            list_res = ray.get(tasks)
+        else:
+            list_res = [worker.collect_random_data(total_samples) for worker in self.workers]
+        res = []
+        for mem_list in list_res:
+            res += mem_list
+        return res

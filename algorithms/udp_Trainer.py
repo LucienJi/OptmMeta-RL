@@ -75,19 +75,16 @@ class Udp_Trainer:
         self.replay_buffer = MetaBuffer(max_traj_num=100,max_traj_step=1000)
         self.device = self.parameter.device
 
-    def update_sac_multitask(self,task_indices_train,with_embs = None):
+    def update_sac_multitask(self,task_indices = None):
          ## update value 
         info = {}
+        if task_indices is None:
+            task_indices = self.replay_buffer.sample_task_id(self.parameter.task_per_batch)
         bz ,n_task_per_batch = self.parameter.sac_mini_batch_size,self.parameter.task_per_batch
-        task_indices = self.replay_buffer.sample_task_id(n_task_per_batch) if task_indices_train is None else task_indices_train
+        task_indices = self.replay_buffer.sample_task_id(n_task_per_batch) if task_indices is None else task_indices
         data = self.replay_buffer.sample_multi_task_batch(task_indices,bz,True,self.device) # (n_env,bz,dim)
-        stable_emb = self.encoder.moco.get_multitask_value_emb(task_indices,bz,self.device,deterministic=False) ## stable emb
+        stable_emb = self.encoder.get_multitask_value_emb(task_indices,bz,self.device,deterministic=False) ## stable emb
         
-
-        if with_embs is not None:
-            if with_embs.ndim == 3:# (n_env,n_support,dim)
-                with_embs = with_embs.mean(1).unsqueeze(1).expand((-1,bz,-1))
-                emb = with_embs
 
         q_loss ,q_info = self.sac.compute_q_loss(data.obs,data.act,data.obs2,data.rew,data.done,stable_emb,stable_emb)
         self.sac.value_optimizer.zero_grad()
@@ -111,7 +108,7 @@ class Udp_Trainer:
         info = dump_info(info,alpha_info)
         self.sac.update_value_function()
 
-        return info,task_indices_train
+        return info
     
     def learn(self):
         total_steps = 0
@@ -141,11 +138,14 @@ class Udp_Trainer:
                 
                 if ((step % self.parameter.update_sac_interval) == 0):
                     task_indices_train = self.replay_buffer.sample_task_id(self.parameter.task_per_batch)
-                    update_info = self.update(task_indices_train,stop_gradient=False)
+                    update_info = self.update(task_indices_train,with_sac=False,stop_gradient=True)
+                    sac_info = self.update_sac_multitask(task_indices_train)
                     self.logger.add_tabular_data(tb_prefix='training',**update_info)
+                    self.logger.add_tabular_data(tb_prefix='training',**sac_info)
+
             training_info = self.training_agent.collect_results(total_steps)
-            # tracker.writekvlist(training_info)
             self.logger.add_tabular_data(tb_prefix='training',**training_info)
+
             self.logger.log_tabular("Global Step",total_steps,tb_prefix = 'timestep',average_only=True)
 
             # if iter % 10 == 0:
@@ -170,7 +170,9 @@ class Udp_Trainer:
         self.logger.finish()
 
     
-    def update(self,task_indices:list,stop_gradient = False):
+
+
+    def update(self,task_indices:list,with_sac = True,stop_gradient = False,entropy = False,dpp = False,cross_entropy = False):
         info = {}
         meta_loss = 0.0
         for id in task_indices:
@@ -182,19 +184,23 @@ class Udp_Trainer:
             #! 先计算 encoder 的 loss
             encoder_loss,encoder_info,embedding = self.encoder.compute_loss(support.obs,
                     support.act,support.obs2,support.rew,query.obs,query.act,query.obs2,query.rew,
-                    env_id = id,distance_entropy=True)
-            
+                    env_id = id,
+                    distance_entropy=entropy,
+                    dpp=dpp,
+                    cross_entropy=cross_entropy)
+            info = dump_info(info,encoder_info)
             if stop_gradient:
                 embedding = embedding.detach()
-            q_loss ,q_info = self.sac.compute_q_loss(
-                support.obs,support.act,support.obs2,support.rew,support.done,embedding,embedding)
-            actor_loss,actor_info = self.sac.compute_policy_loss(support.obs,embedding)
-            alpha_loss,alpha_info = self.sac.compute_alpha_loss(support.obs,embedding)
-            info = dump_info(info,encoder_info)
-            info = dump_info(info,q_info)
-            info = dump_info(info,actor_info)
-            info = dump_info(info,alpha_info)
-            meta_loss += encoder_loss + q_loss + actor_loss + alpha_loss
+            meta_loss += encoder_loss 
+            if with_sac:
+                q_loss ,q_info = self.sac.compute_q_loss(
+                    support.obs,support.act,support.obs2,support.rew,support.done,embedding,embedding)
+                actor_loss,actor_info = self.sac.compute_policy_loss(support.obs,embedding)
+                alpha_loss,alpha_info = self.sac.compute_alpha_loss(support.obs,embedding)
+                info = dump_info(info,q_info)
+                info = dump_info(info,actor_info)
+                info = dump_info(info,alpha_info)
+                meta_loss +=  q_loss + actor_loss + alpha_loss
             #! 更新 moco
             self.encoder.add_and_update(id,embedding)
         meta_loss /= len(task_indices)
@@ -205,12 +211,14 @@ class Udp_Trainer:
         self.sac.alpha_optimizer.zero_grad()
         meta_loss.backward()
         self.encoder.optm.step()
-        self.sac.policy_optimizer.step()
-        self.sac.value_optimizer.step()
-        self.sac.alpha_optimizer.step()
+
+        if with_sac:
+            self.sac.policy_optimizer.step()
+            self.sac.value_optimizer.step()
+            self.sac.alpha_optimizer.step()
+            self.sac.update_value_function()
 
         #! 更新 target
-        self.sac.update_value_function()
         return {k:np.mean(v) for k,v in info.items()}
 
 
@@ -228,13 +236,6 @@ class Udp_Trainer:
             self.sac.save(path)
             self.encoder.save(path)
 
-    # def load(self,path = None):
-    #     if path is None:
-    #         self.sac.load(self.logger.model_output_dir,map_location = self.device)
-    #         self.encoder.load(self.logger.model_output_dir,map_location = self.device)
-    #     else:
-    #         self.sac.load(path,map_location = self.device)
-    #         self.encoder.load(path,map_location = self.device)
     def load(self,path = None):
         if path is None:
             self.sac.load(self.logger.model_output_dir)
@@ -242,3 +243,29 @@ class Udp_Trainer:
         else:
             self.sac.load(path)
             self.encoder.load(path)
+    
+    def data_collection(self,total_steps,random = True):
+        self.encoder.to(device=torch.device('cpu'))
+        self.sac.policy.to(device=torch.device('cpu'))
+        self.logger("Data Collection Start with ",self.replay_buffer.size , " Samples")
+        assert random == True, print("Only Support Random Sample")
+        list_mem = self.training_agent.collect_random_data(total_steps)
+        for mem in list_mem:
+            self.replay_buffer.push_mem(mem)
+        self.logger("Data Collection Done with ", self.replay_buffer.size, " Samples")
+    
+    def pretrain(self,iter = 1000,entropy = False,dpp = False,cross_entropy = False):
+        data_size = self.replay_buffer.size  ## 这个 size 是 n_env 总和
+        epochs = max(data_size // self.parameter.encoder_batch_size // self.parameter.task_per_batch,1)
+        self.encoder.to(device=self.device)
+        self.sac.policy.to(device=self.device)
+        self.logger(f"Pretrain: Iter: {iter}, Epochs: {epochs}")
+        for i in range(iter):
+            for _ in range(epochs):
+                task_indices = self.replay_buffer.sample_task_id(self.parameter.task_per_batch)
+                pretrain_info = self.update(task_indices,with_sac= False,stop_gradient=True,entropy=entropy,dpp=dpp,cross_entropy=cross_entropy)
+                self.logger.add_tabular_data(tb_prefix='pretrain',**pretrain_info)
+
+            self.logger.log_tabular("iter",i,tb_prefix = 'iteration',average_only=True)
+            self.logger.dump_tabular()
+        self.logger("Pretrain Done")
