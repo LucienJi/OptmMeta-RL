@@ -50,6 +50,11 @@ class UdpEnvencoder:
         self.parameter = parameter
         self.encoder = UDP_Encoder(obs_dim,act_dim,max_env_num=50,**UDP_Encoder.make_config_from_param(parameter))
         self.world_decoder = UDP_Decoder(obs_dim,act_dim,**UDP_Decoder.make_config_from_param(parameter))
+        self.world_decoder_target = UDP_Decoder(obs_dim,act_dim,**UDP_Decoder.make_config_from_param(parameter))
+        self.world_decoder_target.load_state_dict(self.world_decoder.state_dict())
+        for para in self.world_decoder_target.parameters():
+            para.requires_grad = False
+
         ## TODO: if we add the new W, we need reset the parameters
         self.envcoder_parameters = itertools.chain(self.encoder.parameters(),self.world_decoder.parameters())
         self.optm = optim.Adam(self.envcoder_parameters, lr= parameter.encoder_lr, amsgrad=False)
@@ -97,7 +102,9 @@ class UdpEnvencoder:
                      env_id, 
                      distance_entropy = True,
                      dpp = True,
-                     cross_entropy = True,):
+                     cross_entropy = True,
+                     cosine = True,
+                     certainty = True):
         """
         Support: 
             1. bz,dim, 
@@ -135,11 +142,23 @@ class UdpEnvencoder:
             loss = loss + cross_loss * 1.0
             info.update(cross_info)
         
+        if cosine:
+            cosine_loss,cosine_info = self._cosine_similarity(chosen_embedding,env_id,temperature=0.1)
+            loss = loss + cosine_loss * 1.0
+            info.update(cosine_info)
+        
+        if certainty:
+            certainty_loss,certainty_info = self._certainty_loss(all_emb,correlation,support_obs,support_act,support_obs2,support_rew)
+            loss = loss + certainty_loss * 1.0
+            info.update(certainty_info)
+        
         return loss,info,chosen_embedding
     
     def to(self,device = torch.device('cpu')):
         self.encoder.to(device)
         self.world_decoder.to(device)
+        self.world_decoder_target.to(device)
+        
     def save(self,path = None):
         if path is None:
             path = self.parameter.model_path
@@ -151,6 +170,7 @@ class UdpEnvencoder:
             path = self.parameter.model_path
         self.encoder.load(os.path.join(path, 'encoder.pt'))
         self.world_decoder.load(os.path.join(path, 'world_decoder.pt')) 
+        self.world_decoder_target.load(os.path.join(path, 'world_decoder.pt'))
         self.optm.load_state_dict(torch.load(os.path.join(path, 'encoder_optim.pt')))
         self.envcoder_parameters = itertools.chain(self.encoder.parameters(),self.world_decoder.parameters())
     
@@ -183,3 +203,50 @@ class UdpEnvencoder:
             'cross_entropy':loss.item()
         }
         return loss,info
+
+    def _cosine_similarity(self,embedding,id,temperature = 0.10):
+        #! embedding.shape = (bz, dim)
+        #! id = env_id 
+        mean_emb = self.encoder._get_embedding() #(n_env,dim )
+        emb_id = mean_emb[id]
+        similarity_1 = F.cosine_similarity(embedding,emb_id.unsqueeze(0),dim = -1) #(bz,)
+        embedding_norm = embedding / embedding.norm(dim = -1,keepdim=True)
+        env_embedding_norm = mean_emb / mean_emb.norm(dim = -1,keepdim=True)
+        similarity_2 = torch.matmul(embedding_norm,env_embedding_norm.T) #bz,n_env
+        loss = torch.log(torch.exp(similarity_1/temperature)) - torch.log(torch.exp(similarity_2/temperature).sum(dim = -1))
+        loss = -1.0 * loss.mean()
+        info = {
+            'cosine_simialrity':loss.item(),
+            'temperature':temperature
+        }
+        return loss,info
+    
+    def _certainty_loss(self,embedding,correlation,obs,act,obs2,rew):
+        #! embedding.shape = (bz,n_env,dim)
+        #! correlation.shape = (bz,n_env)
+        #! obs.shape = (bz,dim)
+        obs = obs.unsqueeze(1).expand(-1,correlation.shape[1],-1)
+        act = act.unsqueeze(1).expand(-1,correlation.shape[1],-1)
+        obs2 = obs2.unsqueeze(1).expand(-1,correlation.shape[1],-1)
+        rew = rew.unsqueeze(1).expand(-1,correlation.shape[1],-1)
+
+        mean_emb = self.encoder._get_embedding()
+        ## mean_emb.shape = (n_env,dim)
+        mean_emb = mean_emb.unsqueeze(0).expand(embedding.shape[0],-1,-1)
+        loss1 = self.world_decoder_target._certainty_loss_helper(obs,act,obs2,rew,embedding) #! shape = (bz,n_env)
+        loss2 = self.world_decoder_target._certainty_loss_helper(obs,act,obs2,rew,mean_emb) #! shape = (bz,n_env)
+        loss = loss1 * correlation + (1 - correlation) * loss2 #! shape = (bz,n_env)
+        loss = loss.mean()
+        info = {
+            'certainty_loss':loss.item(),
+            'original_prediction_loss':loss1.mean().item(),
+            'stable_prediction_loss':loss2.mean().item()
+        }
+        return loss,info
+
+
+    def update_decoder(self):
+        self.world_decoder_target.copy_weight_from(self.world_decoder,tau = 0.95)
+
+        
+

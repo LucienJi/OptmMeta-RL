@@ -54,6 +54,8 @@ class UDP_Encoder(E_Encoder):
 		self.emb_dim = emb_dim 
 		self.max_env_num = max_env_num
 		self.W = nn.Parameter(torch.normal(torch.zeros(max_env_num, emb_dim, feature_dim), 0.05),requires_grad=True)
+		self.B = nn.Parameter(torch.normal(torch.zeros(max_env_num, emb_dim), 0.05),requires_grad=True)
+		
 		self.register_buffer("n_env",torch.zeros((),dtype = torch.long))   #! 记录当前有多少个 env
 		self.register_buffer("N", torch.ones(max_env_num)) #! 每个 env 记录过的 embedding 数量
 		self.register_buffer(
@@ -119,8 +121,9 @@ class UDP_Encoder(E_Encoder):
 		if no_grad:
 			feature = feature.detach()
 		w = self.W[0:self.n_env]
+		b = self.B[0:self.n_env]
 		f2e = torch.einsum("bf,nef->bne",feature,w)
-		return f2e
+		return f2e + b
 
 
 	def calc_correlation(self,obs,act,obs2,rew,no_grad = False):
@@ -176,7 +179,7 @@ class UDP_Encoder(E_Encoder):
 			emb_dim = parameter.emb_dim,
 			hidden_size = parameter.encoder_hidden_size,
 			learnable_length_scale=False,
-			length_scale = 1.0,
+			length_scale = parameter.length_scale,
 	      	tau = parameter.emb_tau
 		)
 

@@ -88,10 +88,10 @@ class LoggerBase:
         if self.first_row:
             self.log_headers.append(key)
             self.log_headers = sorted(self.log_headers)
-        else:
-            assert key in self.log_headers, "Trying to introduce a new key %s that you didn't include in the first iteration" % key
+        #else:
+        #    assert key in self.log_headers, "Trying to introduce a new key %s that you didn't include in the first iteration" % key
         # print("Check Current Row: ",self.log_current_row)
-        assert key not in self.log_current_row, "You already set %s this iteration. Maybe you forgot to call dump_tabular()" % key
+        #assert key not in self.log_current_row, "You already set %s this iteration. Maybe you forgot to call dump_tabular()" % key
         self.log_current_row[key] = val
         if tb_prefix is None:
             tb_prefix = 'tb'

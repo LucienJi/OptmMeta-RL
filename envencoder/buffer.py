@@ -238,6 +238,10 @@ class MetaBuffer(object):
             res += self.task_buffers[id]._size
         return res
 
+    @property
+    def num_envs(self):
+        return len(self.task_buffers.keys())
+    
     def push_mem(self,mem:Memory):
         ind = mem.task_id
         if ind not in self.task_buffers.keys():

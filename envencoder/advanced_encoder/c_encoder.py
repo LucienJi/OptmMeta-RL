@@ -6,7 +6,7 @@ import os
 from utils.math import mlp
 import torch.distributions as pyd
 from envencoder.transition import Transition
-
+from envencoder.actor import Base
 MIN_LOGSTD = -1.5
 MAX_LOGSTD = 2
 
@@ -121,10 +121,10 @@ class UdpTransition(Transition):
 			device = parameter.device
 		)
 
-class UDP_Decoder(nn.Module):
+class UDP_Decoder(Base):
 	def __init__(self,obs_dim,act_dim,with_reward,with_transition,emb_dim,hidden_size,device):
 		super().__init__()
-		assert with_reward or with_transition
+		# assert with_reward or with_transition
 		self.with_reward,self.with_transition = with_reward,with_transition
 		self.reward = UdpReward(obs_dim,act_dim,emb_dim,hidden_size,device) 
 		self.transition = UdpTransition(obs_dim,act_dim,emb_dim,hidden_size,device) 
@@ -158,6 +158,22 @@ class UDP_Decoder(nn.Module):
 		loss += rew_loss
 		info.update(rew_info)
 		return loss,info 
+	def _certainty_loss_helper(self,obs,act,obs2,rew,emb = None):
+		if not self.with_transition:
+			trans_emb = emb.detach()
+		else:
+			trans_emb = emb 
+		mean = self.transition._default_forward(obs,act,trans_emb)
+		tran_loss = F.mse_loss(mean,obs2,reduction='none')
+		if not self.with_reward:
+			rew_emb = emb.detach()
+		else:
+			rew_emb = emb
+		mean = self.reward._default_forward(obs,act,rew_emb)
+		rew_loss = F.mse_loss(mean,rew,reduction='none')
+		loss = tran_loss.mean(-1) + rew_loss.mean(-1)
+		return loss 
+	
 	@staticmethod
 	def make_config_from_param(parameter):
 		return dict(

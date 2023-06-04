@@ -172,7 +172,10 @@ class Udp_Trainer:
     
 
 
-    def update(self,task_indices:list,with_sac = True,stop_gradient = False,entropy = False,dpp = False,cross_entropy = False):
+    def update(self,task_indices:list,
+               with_sac = True,stop_gradient = False,
+               entropy = False,dpp = False,
+               cross_entropy = False,cosine = False,certainty = False):
         info = {}
         meta_loss = 0.0
         for id in task_indices:
@@ -187,7 +190,9 @@ class Udp_Trainer:
                     env_id = id,
                     distance_entropy=entropy,
                     dpp=dpp,
-                    cross_entropy=cross_entropy)
+                    cross_entropy=cross_entropy,
+                    cosine=cosine,
+                    certainty=certainty)
             info = dump_info(info,encoder_info)
             if stop_gradient:
                 embedding = embedding.detach()
@@ -211,6 +216,7 @@ class Udp_Trainer:
         self.sac.alpha_optimizer.zero_grad()
         meta_loss.backward()
         self.encoder.optm.step()
+        self.encoder.update_decoder()
 
         if with_sac:
             self.sac.policy_optimizer.step()
@@ -254,7 +260,11 @@ class Udp_Trainer:
             self.replay_buffer.push_mem(mem)
         self.logger("Data Collection Done with ", self.replay_buffer.size, " Samples")
     
-    def pretrain(self,iter = 1000,entropy = False,dpp = False,cross_entropy = False):
+    def pretrain(self,iter = 1000,start_aux = 0,
+                 entropy = False,
+                 dpp = False,
+                 cross_entropy = False,
+                 cosine = False,certainty = False):
         data_size = self.replay_buffer.size  ## 这个 size 是 n_env 总和
         epochs = max(data_size // self.parameter.encoder_batch_size // self.parameter.task_per_batch,1)
         self.encoder.to(device=self.device)
@@ -263,7 +273,13 @@ class Udp_Trainer:
         for i in range(iter):
             for _ in range(epochs):
                 task_indices = self.replay_buffer.sample_task_id(self.parameter.task_per_batch)
-                pretrain_info = self.update(task_indices,with_sac= False,stop_gradient=True,entropy=entropy,dpp=dpp,cross_entropy=cross_entropy)
+                pretrain_info = self.update(task_indices,with_sac= False,
+                                            stop_gradient=True,
+                                            entropy=entropy and i > start_aux,
+                                            dpp=dpp and i > start_aux,
+                                            cross_entropy=cross_entropy and i > start_aux,
+                                            cosine=cosine and i > start_aux ,
+                                            certainty=certainty and i > start_aux )
                 self.logger.add_tabular_data(tb_prefix='pretrain',**pretrain_info)
 
             self.logger.log_tabular("iter",i,tb_prefix = 'iteration',average_only=True)

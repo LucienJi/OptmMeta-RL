@@ -247,9 +247,12 @@ class Parameters:
         self.encoder_lr = 3e-4
         parser.add_argument('--encoder_lr',type= float,default=self.encoder_lr)
 
-        self.emb_tau = 0.995
+        self.emb_tau = 0.95
         parser.add_argument('--emb_tau', type=float, default=self.emb_tau, metavar='N',
                             help='ratio of update mean emb for target value net')
+        self.length_scale = 0.1
+        parser.add_argument('--length_scale', type=float, default=self.emb_tau, metavar='N',
+                            help='smaller length scale, more likely to be distant for different env')
 
         ### SAC PART ###
         self.sac_mini_batch_size = 256

@@ -111,6 +111,16 @@ def embedding_variation(embs):
 def pca_analysis(embs,ids,need_pca = True,need_tsne = False):
     fig,ax = plt.subplots(1,1,figsize=(10,10))
     plt.cla()
+    if type(embs) == list:
+        n_env = len(embs)
+        n_sample = embs[0].shape[0]
+        env_id  = np.ones((n_env,n_sample))
+        for i,id in enumerate(ids):
+            env_id[i] = env_id[i] * id
+        env_id = env_id.reshape(-1)
+        ids = env_id
+        embs = np.concatenate(embs,axis=0)
+        embs = embs.reshape((n_env * n_sample,-1))
     if need_pca:
         pca = PCA(n_components=2)
         scaler = StandardScaler()
@@ -121,7 +131,6 @@ def pca_analysis(embs,ids,need_pca = True,need_tsne = False):
         principalComponents = tsne.fit_transform(embs)
     else:
         principalComponents = embs 
-    sns.set_theme(style="darkgrid")
     sns.scatterplot(x= principalComponents[:,0],
                     y=principalComponents[:,1],
                     hue=ids.reshape(-1),
@@ -130,6 +139,7 @@ def pca_analysis(embs,ids,need_pca = True,need_tsne = False):
     ax.legend(loc = 'upper right',title = 'Task Id')
     ax.set_title(f"Embedding Analysis")
     return fig
+
 
     
     

@@ -14,6 +14,11 @@ if __name__ == '__main__':
     trainer = Udp_Trainer(parameter=para)
 
     trainer.data_collection(total_steps=500000,random=True)
-    trainer.pretrain(100,entropy=False,dpp=False,cross_entropy=True)
+    trainer.pretrain(100,start_aux=-1,
+                     entropy=False,
+                     dpp=False,
+                     cross_entropy=True,
+                     cosine=False,
+                     certainty=False,)
     trainer.save()
     trainer.load()

@@ -1,6 +1,6 @@
 .idea
 .DS_Store
-__pycache__
+__pycache__/
 log
 run_all.yaml
 data
@@ -8,6 +8,7 @@ figs
 log_file
 baselines.tar.gz
 *.pt
+*.txt
 wandb/
 data/
 configs/
