@@ -1,0 +1,6 @@
+/logs/
+*.jpg
+*.png
+*.txt
+wandb/
+*.pt
