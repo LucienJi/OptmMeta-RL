@@ -1,9 +1,11 @@
-from legged_gym.envs import * 
-from legged_gym.utils import get_args, task_registry
+from isaacgym import gymapi
 
+gym = gymapi.acquire_gym()
+sim_params = gymapi.SimParams()
+sim_params.physx.use_gpu = True
+try:
+    sim = gym.create_sim(0, 0, gymapi.SIM_PHYSX, sim_params)
+except:
+    print("except")
 
-if __name__ == '__main__':
-    env,env_cfg = task_registry.make_env(name="littledog_terrain", args=None)
-    print("env type: ",type(env))
-    print("Observation space is", env.observation_space)
-    print("Action space is", env.action_space)	
+print("done")

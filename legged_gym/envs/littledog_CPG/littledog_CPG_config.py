@@ -3,7 +3,8 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 
 class LittledogCPGRoughCfg( LeggedRobotCfg ):
     class env( LeggedRobotCfg.env):
-        num_envs = 4096
+        # num_envs = 4096
+        num_envs = 4
         num_observations = 243
         num_actions = 8
 
