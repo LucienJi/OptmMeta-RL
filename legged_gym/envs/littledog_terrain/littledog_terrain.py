@@ -25,19 +25,7 @@ class LittledogTerrain(LeggedRobot):
     def __init__(self, cfg, sim_params, physics_engine, sim_device, headless):
         super().__init__(cfg, sim_params, physics_engine, sim_device, headless)
         # initiallize CPG params
-        self.cpg_osc = CPG_gait(
-            
-            alpha=150.0,
-            d_step=0.2,
-            h = 0.36,
-            gc = 0.075,
-            gp = 0.02 
-        )
-        self.r = torch.zeros(self.num_envs, 6, dtype = torch.float, device=self.device, requires_grad=False)
-        self.r_dot = torch.zeros(self.num_envs, 6, dtype = torch.float, device=self.device, requires_grad=False)
-        self.theta = torch.zeros(self.num_envs, 6, dtype = torch.float, device=self.device, requires_grad=False)
-        self.phi = torch.zeros(self.num_envs, 6, dtype = torch.float, device=self.device, requires_grad=False)
-
+        
         # self.r = torch.tensor([1.,-1.,1.,-1.,1.,-1.], dtype = torch.float, device=self.device, requires_grad=False).repeat(self.num_envs,1)
     
     def reset_idx(self, env_ids):
@@ -45,12 +33,6 @@ class LittledogTerrain(LeggedRobot):
         # Additionaly empty actuator network hidden states
         self.sea_hidden_state_per_env[:, env_ids] = 0.
         self.sea_cell_state_per_env[:, env_ids] = 0.
-
-        self.r[env_ids,:] = torch.zeros(6, dtype = torch.float, device=self.device, requires_grad=False)
-        self.r_dot[env_ids,:] = torch.zeros(6, dtype = torch.float, device=self.device, requires_grad=False)
-        self.theta[env_ids,:] = torch.zeros(6, dtype = torch.float, device=self.device, requires_grad=False)
-        self.phi[env_ids,:] = torch.zeros(6, dtype = torch.float, device=self.device, requires_grad=False)
-
         # self.x[env_ids,:] = torch.zeros(6, dtype = torch.float, device=self.device, requires_grad=False)
         # self.y[env_ids,:] = torch.tensor([1.,-1.,1.,-1.,1.,-1.], dtype = torch.float, device=self.device, requires_grad=False)
 
@@ -74,26 +56,8 @@ class LittledogTerrain(LeggedRobot):
         Returns:
             [torch.Tensor]: Torques sent to the simulation
         """
-        # 全都是 clip 1, 需要映射到目标区间         
-        actions[:,0:NUM_LEG] = 1.5 + 0.5 * actions[:,0:NUM_LEG] # mu in [1,2]
-        actions[:,NUM_LEG:2*NUM_LEG] = 2.25 + 2.25 * actions[:,NUM_LEG:2*NUM_LEG] # omega in [0,4.5]
-        actions[:,2*NUM_LEG : 3 * NUM_LEG] = 1.5 * actions[:,2*NUM_LEG : 3 * NUM_LEG] # psi in [-1.5,1.5]
-        # print('x:!!!!!!!!!!!!!!!!!!!',self.x[0,:])
-        # print('y:!!!!!!!!!!!!!!!!!!!',self.y[0,:])
-        self.r, self.r_dot, self.theta, self.phi = self.cpg_osc.oscillator(self.r, self.r_dot, self.theta, self.phi, actions,steps=0.01)
-    
-        # self.x, self.y = self.hopf_oscillator.hopf(self.x, self.y, steps=0.01)
-        foot_x, foot_y, foot_z = self.cpg_osc.map(self.r, self.theta,self.phi)
-        # print('z!!!!!!!!',foot_z[0,:])
         
-        target_dof_pos = self.inverse_kinematics(foot_x, foot_y, foot_z, True)
-
-        control_type = self.cfg.control.control_type
-        if control_type=="P":
-            torques = self.p_gains*(target_dof_pos - self.dof_pos) - self.d_gains*self.dof_vel
-        else:
-            raise NameError(f"Unknown controller type: {control_type}")
-        return torch.clip(torques, -self.torque_limits, self.torque_limits) 
+        return super()._compute_torques(actions)
 
     def inverse_kinematics(self, x, y, z, bendInfo:bool):
         len_thigh = 0.25
@@ -126,54 +90,6 @@ class LittledogTerrain(LeggedRobot):
             theta1 = -alpha + beta
 
         pos_action[:,[0,3,6, 9,12,15]] = theta0
-        pos_action[:,[1,4,7,10,13,16]] = theta1
-        pos_action[:,[2,5,8,11,14,17]] = theta2
-
-        return pos_action
-
-    def inverse_kinematics2(self, x, y, z, bendInfo:bool):
-        l0 = 0.0802
-        l1 = 0.25
-        l2 = 0.25
-
-        pos_action = torch.zeros_like(self.dof_pos).squeeze(-1) # num_envs * num_dof(18)
-
-        z_r = z[:,0:3] # right legs
-        z_l = z[:,3:6] # left legs
-        y_r = y[:,0:3] # right legs
-        y_l = y[:,3:6] # left legs
-
-        theta0_r = -torch.atan2(z_r,-y_r) - torch.atan2(torch.sqrt(y_r**2+z_r**2-l0**2),l0*torch.ones_like(z_r))
-        theta0_l = torch.atan2(z_l,y_l) + torch.atan2(torch.sqrt(y_l**2+z_l**2-l0**2),l0*torch.ones_like(z_r))
-
-        # yz_square = y**2 + z**2 - l0**2
-
-        # length_square = yz_square + x**2
-        # yz = torch.sqrt(yz_square)
-        # length = torch.sqrt(length_square)
-
-        # theta0 = torch.atan2(z, -y) + torch.atan2(yz, l0*torch.ones_like(yz))
-        # q0 = torch.zeros_like(theta0)
-        # q0[0:3,:] = - theta0[0:3,:] 
-        # q0[3:6,:] = theta0[3:6,:] 
-
-        # tmp = (l1**2+length_square-l2**2)/2/l1/length
-        # tmp = torch.clamp(tmp,-1,1)
-        # tmp2 = (l1**2+l2**2-length_square)/2/l1/l2
-        # tmp2 = torch.clamp(tmp2,-1,1)
-        L = torch.sqrt(y**2+z**2-l0**2)
-        # if bendInfo == False:    
-        #     theta1 = -torch.atan2(x,yz) - torch.acos(tmp)
-        #     theta2 = torch.pi - torch.acos(tmp2)
-        
-        # else:
-        theta1 = -torch.atan2(x,L) + torch.acos((l1**2+L**2+x**2-l2**2)/2/l1/torch.sqrt(L**2+x**2))
-        theta2 = -torch.pi + torch.acos(-L**2+l1**2+l2**2-x**2/2/l1/l2)
-        # theta1 = -torch.atan2(x,torch.sqrt(L**2-x**2)) + torch.acos((l1**2+L**2-l2**2)/2/l1/L)
-        # theta2 = -torch.pi + torch.acos(-L**2+l1**2+l2**2/2/l1/l2)
-
-        pos_action[:,[0,3,6]] = theta0_r
-        pos_action[:,[9,12,15]] = theta0_l
         pos_action[:,[1,4,7,10,13,16]] = theta1
         pos_action[:,[2,5,8,11,14,17]] = theta2
 

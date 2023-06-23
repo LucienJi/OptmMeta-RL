@@ -50,6 +50,9 @@ def class_to_dict(obj) -> dict:
         if isinstance(val, list):
             for item in val:
                 element.append(class_to_dict(item))
+        elif isinstance(val, tuple):
+            #! Test ? 
+            element = class_to_dict(val[0])
         else:
             element = class_to_dict(val)
         result[key] = element

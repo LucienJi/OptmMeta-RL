@@ -1,11 +1,11 @@
 from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobotCfgAlg
-
+from legged_gym.envs.base.base_config import BaseConfig
 class LittledogTerrainCfg( LeggedRobotCfg ):
     class env( LeggedRobotCfg.env):
         num_envs = 4096
         # num_envs = 10
         num_observations = 253
-        num_actions = 18
+        num_actions = 18 #! 6 * 3 
 
     
     class terrain( LeggedRobotCfg.terrain):
@@ -34,12 +34,13 @@ class LittledogTerrainCfg( LeggedRobotCfg ):
             'leg6_foot_joint': -1.49543
         }
 
-    class control( LeggedRobotCfg.control ):
+    class control( LeggedRobotCfg.control):
         # PD Drive parameters:
         stiffness = {'joint': 85.}  # [N*m/rad] 85
         damping = {'joint': 2}  # [N*m*s/rad]     # [N*m*s/rad] 2
         # action scale: target angle = actionScale * action + defaultAngle
-        action_scale = 0.5
+        #! 我默认输出的范围是 [-1,1]
+        action_scale = 1.0
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
         
@@ -94,11 +95,63 @@ class LittledogTerrainCfg( LeggedRobotCfg ):
             clip_observations = 100.
             clip_actions = 1. # 1 for CPG, 100 for the other situation
 
-class LittledogTerrainCfgPPO( LeggedRobotCfgAlg ):
-    
-    class runner( LeggedRobotCfgAlg.runner ):
-        run_name = ''
-        experiment_name = 'terrain_littledog'
 
-    class algorithm( LeggedRobotCfgAlg.algorithm):
-        entropy_coef = 0.01
+
+class LittledogTerrainCfgPPO( BaseConfig ):
+    seed = 1 
+    runner_class_name = "StackedRunner"
+    class runner:
+        num_steps_per_env = 24 # per iteration
+        max_iterations = 15 # number of policy updates
+
+        # logging
+        save_interval = 50 # check for potential saves every this many iterations
+        experiment_name = 'Terrain_Gait'
+        run_name = 'Test'
+        # load and resume
+        resume = False
+        load_run = -1 # -1 = last run
+        checkpoint = -1 # -1 = last saved model
+        resume_path = None # updated from load_run and chkpt
+
+    class ppo:
+        num_learning_epochs=1,
+        num_mini_batches=1,
+        clip_param=0.2,
+        gamma=0.998,
+        lam=0.95,
+        value_loss_coef=1.0,
+        entropy_coef=0.0,
+        learning_rate=3e-4,
+        max_grad_norm=10.0,
+        use_clipped_value_loss=True,
+        schedule="fixed",
+        desired_kl=0.01,
+
+    
+    class task_representation:
+        batch_size = 4096 * 10,
+        num_mini_batch = 10 ,
+        num_learning_epochs=1,
+        capacity = 100,
+        max_history_len = 10,
+        learning_rate = 3e-4,
+        max_grad_norm = 1.0,
+
+    class policy:
+        emb_dim = 10
+        feature_extractor_dims = [256,256],
+        actor_hidden_dims=[256],
+        critic_hidden_dims=[256],
+        activation='elu',
+        init_noise_std=1.0,
+
+    class encoder:
+        feature_hidden_dim = [256,256],
+        mid_emb_dim = 16,
+        max_step_len=10,
+        activation = 'elu'
+    
+    class decoder:
+        hidden_dim = [256,256],
+        activation = 'elu'
