@@ -57,3 +57,8 @@ class StackEncoder(nn.Module):
         feature = torch.flatten(feature,start_dim=-2,end_dim=-1) #! (bz,max_step_len*mid_emb_dim)
         emb = self.encoder(feature) #! (bz,emb_dim)
         return emb 
+
+class RnnEncoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
