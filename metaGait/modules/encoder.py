@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.distributions import Normal
 from torch.nn.modules import rnn
 from .utils import get_activation
-
+from .utils import split_and_pad_trajectories, unpad_trajectories
 class FeatureExtractor(nn.Module):
     def __init__(self, obs_dim,act_dim,reward_dim,
                  hidden_dim = [256,256],output_dim = 16,
@@ -58,7 +58,36 @@ class StackEncoder(nn.Module):
         emb = self.encoder(feature) #! (bz,emb_dim)
         return emb 
 
+
+"""
+RNN Encoder:
+注意，现在应该只是 input sequence of observation， 但是， 需要重新定义 observation 
+"""
 class RnnEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim, rnn_hidden_size, feature_hidden_dim = [256,128,64], emb_dim = 32, activation = 'elu'):
         super().__init__()
-        
+        self.rnn = nn.GRU(input_dim, rnn_hidden_size,num_layers = 1)
+        dims = [input_dim + rnn_hidden_size] + feature_hidden_dim
+        activation = get_activation(activation)
+        layers = []
+        for i in range(len(dims) - 1):
+            layers.append(nn.Linear(dims[i], dims[i + 1]))
+            layers.append(activation)
+        layers.append(nn.Linear(dims[-1], emb_dim))
+        layers.append(nn.Identity())
+        self.mlp = nn.Sequential(*layers)
+
+        ## For init hidden state
+        self.hidden_states = None 
+    
+    def reset(self,dones):
+        self.hidden_states[..., dones,:] = 0.0 
+    
+    def forward(self,input, masks = None, hidden_states = None ):
+        batch_mode = masks is not None 
+        # if batch_mode 我们就是在训练模式， 或者是说， 我们打算用 truncated RNN 
+        if batch_mode:
+            out,_ = self.rnn(input,hidden_states)
+
+
+ 
