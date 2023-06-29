@@ -145,7 +145,8 @@ class LittledogTerrain(LeggedRobot):
         self.ftg_phase = torch.zeros(self.num_envs, NUM_LEG, dtype=torch.float, device=self.device, requires_grad=False)
         self.ftg_freq = torch.zeros(self.num_envs, NUM_LEG, dtype=torch.float, device=self.device, requires_grad=False)
         self.contacts = torch.zeros(self.num_envs, NUM_LEG, dtype=torch.bool, device=self.device, requires_grad=False)
-
+        self.privileged_obs_buf = torch.zeros(self.num_envs, self.num_privileged_obs, dtype=torch.float, device=self.device, requires_grad=False)
+        
         # joint positions offsets and PD gains
         self.default_dof_pos = torch.zeros(self.num_dofs, dtype=torch.float, device=self.device, requires_grad=False)
         for i in range(self.num_dofs):
@@ -223,7 +224,22 @@ class LittledogTerrain(LeggedRobot):
     def _compute_torques(self, actions):
         
         return super()._compute_torques(actions)
-
+    def _compute_basic_observation(self):
+        pass 
+    def _compute_other_observation(self):
+        pass 
+    def _compute_privileged_observation(self):
+        """
+        privileged observation:
+            1. contact boolean: legs * 1 
+            2. contact force : legs * 3
+            3. contact normal: legs * 3
+            4. height sampled
+            5. base velocity
+            6. base angular velocity
+            
+        """
+        pass 
     def compute_observations(self):
         """ Computes observations
         """
