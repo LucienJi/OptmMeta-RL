@@ -33,8 +33,8 @@ from .base.legged_robot import LeggedRobot
 from .base.legged_robot_config import LeggedRobotCfg,LeggedRobotCfgAlg
 
 
-from .littledog_terrain_v2.littledog_terrain import LittledogTerrain
-from .littledog_terrain_v2.littledog_terrain_config import LittledogTerrainCfg,LittledogTerrainCfgPPO
+from .littledog_terrain.littledog_terrain import LittledogTerrain
+from .littledog_terrain.littledog_terrain_config import LittledogTerrainCfg,LittledogTerrainCfgPPO
 
 import os
 from legged_gym.utils.task_registry import task_registry

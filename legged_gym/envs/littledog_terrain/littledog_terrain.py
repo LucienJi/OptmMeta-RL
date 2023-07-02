@@ -324,7 +324,7 @@ class LittledogTerrain(LeggedRobot):
         
         为了减少计算量, 我们只在 compute observation 的时候计算 privileged observation, reset 的时候并不计算,
 
-        dim = NUM_LEG * 3 + NUM_LEG * N_Height_Samples = 6 * 3 + 6 * 4 * 4 = 108
+        dim = NUM_LEG * 3 + NUM_LEG * N_Height_Samples = 6 * 3 + 6 * 4 * 4 = 114
         """
         measured_foot_height = self.get_foot_position()
         contact_force = self.contact_forces[:, self.feet_indices, :3].reshape(self.num_envs, NUM_LEG * 3)

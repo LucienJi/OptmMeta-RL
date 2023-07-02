@@ -3,14 +3,14 @@ from datetime import datetime
 from typing import Tuple
 import numpy as np
 from legged_gym.envs.littledog_terrain.littledog_terrain import LittledogTerrain
-from legged_gym.envs.littledog_terrain.littledog_terrain_config import LittledogTerrainCfg, LittledogTerrainCfgPPO
+from legged_gym.envs.littledog_terrain.littledog_terrain_config import LittledogTerrainCfg, LittledogTerrainCfgPPO,LittledogTerrainCfgBaseline
 from legged_gym import LEGGED_GYM_ROOT_DIR, LEGGED_GYM_ENVS_DIR
-from metaGait.runners.stacked_runner import StackedRunner
+from baselines.runners.runner import Runner
 from legged_gym.utils.helpers import class_to_dict,update_class_from_dict,parse_sim_params,get_load_path,update_cfg_from_args,get_args
 
 def launch(args):
     env_cfg = LittledogTerrainCfg()
-    train_cfg = LittledogTerrainCfgPPO()
+    train_cfg = LittledogTerrainCfgBaseline()
 
     env_cfg,_  = update_cfg_from_args(env_cfg,None,args)
     sim_params = {"sim":class_to_dict(env_cfg.sim)}
@@ -26,7 +26,7 @@ def launch(args):
 
     _,train_cfg = update_cfg_from_args(None,train_cfg,args)
     train_cfg_dict = class_to_dict(train_cfg)
-    runner = StackedRunner(env,train_cfg_dict,log_dir,device=args.rl_device)
+    runner = Runner(env,train_cfg_dict,log_dir,device=args.rl_device)
     return env, runner ,env_cfg ,train_cfg
 
 

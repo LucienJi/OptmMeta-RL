@@ -35,9 +35,9 @@ if __name__ == '__main__':
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
     for i in range(int(10)):
-        actions = 0.*torch.ones(env.num_envs, env.num_actions, device=env.device)
+        actions = 0.01*torch.ones(env.num_envs, env.num_actions, device=env.device)
         obs, p_obs, rew, done, info = env.step(actions)
-    print(obs.shape,p_obs.shape)
+        print(obs.shape,p_obs.shape)
     
 
     

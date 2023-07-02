@@ -2,10 +2,11 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 from legged_gym.envs.base.base_config import BaseConfig
 class LittledogTerrainCfg( LeggedRobotCfg ):
     class env( LeggedRobotCfg.env):
-        num_envs = 2
-        # num_envs = 10
+        num_envs = 4096
+        num_basic_observations = 81
+        num_other_observations = 114
         num_observations = 195
-        num_privileged_obs = 108
+        num_privileged_obs = 114
         num_actions = 18 #! 6 * 3 
 
     
@@ -193,3 +194,41 @@ class LittledogTerrainCfgPPO( BaseConfig ):
     class decoder:
         hidden_dim = [256,256],
         activation = 'elu'
+
+class LittledogTerrainCfgBaseline( BaseConfig ):
+    seed = 1 
+    runner_class_name = "BaselineRunner"
+    class runner:
+        num_steps_per_env = 24 # per iteration
+        max_iterations = 15 # number of policy updates
+
+        # logging
+        save_interval = 50 # check for potential saves every this many iterations
+        experiment_name = 'Terrain_Gait'
+        run_name = 'Test'
+        # load and resume
+        resume = False
+        load_run = -1 # -1 = last run
+        checkpoint = -1 # -1 = last saved model
+        resume_path = None # updated from load_run and chkpt
+
+    class ppo:
+        num_learning_epochs=1,
+        num_mini_batches=1,
+        clip_param=0.2,
+        gamma=0.998,
+        lam=0.95,
+        value_loss_coef=1.0,
+        entropy_coef=0.0,
+        learning_rate=3e-4,
+        max_grad_norm=10.0,
+        use_clipped_value_loss=True,
+        schedule="fixed",
+        desired_kl=0.01,
+
+    class policy:
+        actor_hidden_dims=[512,256,128],
+        critic_hidden_dims=[512,256,128],
+        activation='elu',
+        init_noise_std=1.0,
+
