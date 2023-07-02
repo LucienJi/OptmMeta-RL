@@ -2,9 +2,10 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 from legged_gym.envs.base.base_config import BaseConfig
 class LittledogTerrainCfg( LeggedRobotCfg ):
     class env( LeggedRobotCfg.env):
-        num_envs = 4096
+        num_envs = 2
         # num_envs = 10
         num_observations = 253
+        num_privileged_obs = 10
         num_actions = 18 #! 6 * 3 
 
     

@@ -779,6 +779,7 @@ class LeggedRobot(BaseTask):
         points = torch.zeros(self.num_envs, self.num_height_points, 3, device=self.device, requires_grad=False)
         points[:, :, 0] = grid_x.flatten()
         points[:, :, 1] = grid_y.flatten()
+        #! 初始化采样点, 采样点的坐标是相对于base的, 只考虑 x,y, z 轴固定是 0
         return points
 
     def _get_heights(self, env_ids=None):
@@ -803,7 +804,9 @@ class LeggedRobot(BaseTask):
             points = quat_apply_yaw(self.base_quat[env_ids].repeat(1, self.num_height_points), self.height_points[env_ids]) + (self.root_states[env_ids, :3]).unsqueeze(1)
         else:
             points = quat_apply_yaw(self.base_quat.repeat(1, self.num_height_points), self.height_points) + (self.root_states[:, :3]).unsqueeze(1)
-
+        
+        #! 这里使用的是,提前设定好的采样点(这应该是按照 m 设定的)
+        #! 先转动 yaw 角度, 再平移,然后按照真实距离进行缩放,最后取高度
         points += self.terrain.cfg.border_size
         points = (points/self.terrain.cfg.horizontal_scale).long()
         px = points[:, :, 0].view(-1)
