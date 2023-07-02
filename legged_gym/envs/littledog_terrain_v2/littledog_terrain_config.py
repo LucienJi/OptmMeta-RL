@@ -4,13 +4,50 @@ class LittledogTerrainCfg( LeggedRobotCfg ):
     class env( LeggedRobotCfg.env):
         num_envs = 2
         # num_envs = 10
-        num_observations = 253
-        num_privileged_obs = 10
+        num_observations = 195
+        num_privileged_obs = 108
         num_actions = 18 #! 6 * 3 
 
     
-    class terrain( LeggedRobotCfg.terrain):
-        pass
+    class terrain:
+        mesh_type = 'trimesh' # "heightfield" # none, plane, heightfield or trimesh
+        horizontal_scale = 0.1 # [m]
+        vertical_scale = 0.005 # [m]
+        border_size = 25 # [m]
+        curriculum = True # True
+        static_friction = 1.0
+        dynamic_friction = 1.0
+        restitution = 0.
+        # rough terrain only:
+        measure_heights = False
+        measured_points_x = [-0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8] # 1mx1.6m rectangle (without center line)
+        measured_points_y = [-0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5]
+        measured_foot_points_x = [-0.1,-0.05,0.05,0.1]
+        measured_foot_points_y = [-0.1,-0.05,0.05,0.1]
+        
+        selected = False # False # select a unique terrain type and pass all arguments
+        # terrain_kwargs = {'type':"random_uniform_terrain",
+        #                   'min_height':-0.02,
+        #                   'max_height':0.02,
+        #                   'step':0.005} # None # Dict of arguments for selected terrain
+        
+        # terrain_kwargs = {'type':"wave_terrain",
+        #                   'num_waves': 1,
+        #                   'amplitude': 0.5} # None # Dict of arguments for selected terrain
+        
+        terrain_kwargs = {'type':"sloped_terrain",
+                          'slope': 0.18} # None # Dict of arguments for selected terrain
+        
+        max_init_terrain_level = 5 # starting curriculum state
+        terrain_length = 8.
+        terrain_width = 8.
+        num_rows= 10 # number of terrain rows (levels)
+        num_cols = 20 # number of terrain cols (types)
+        # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
+        terrain_proportions = [0.4, 0.3, 0.3, 0, 0]# [0.1, 0.1, 0.35, 0.25, 0.2]
+        # trimesh only:
+        slope_treshold = 0.75 # slopes above this threshold will be corrected to vertical surfaces
+
 
     class init_state( LeggedRobotCfg.init_state ):
         pos = [0.0, 0.0, 0.50] # x,y,z [m]
