@@ -1,6 +1,28 @@
 import torch.nn as nn 
 import torch.nn.functional as F
 import torch 
+
+class MLP(nn.Module):
+    """
+    MLP network
+    """
+    def __init__(self, input_dim, output_dim, hidden_dims=[256, 256, 256], activation='elu', output_activation="identity") -> None:
+        super(MLP,self).__init__()
+        dims = [input_dim] + hidden_dims + [output_dim ]
+        layers = []
+        activation = get_activation(activation)
+
+        for i in range(len(dims) - 1):
+            layers.append(nn.Linear(dims[i], dims[i + 1]))
+            layers.append(activation)
+
+        layers.append(nn.Linear(dims[-1], output_dim))
+        layers.append(get_activation(output_activation))
+        self.mlp = nn.Sequential(*layers)
+    
+    def forward(self, x):
+        return self.mlp(x)
+    
 def get_activation(act_name):
     if act_name == "elu":
         return nn.ELU()

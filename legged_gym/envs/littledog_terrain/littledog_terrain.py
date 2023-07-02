@@ -290,7 +290,7 @@ class LittledogTerrain(LeggedRobot):
         return super()._compute_torques(actions)
     def _compute_basic_observation(self):
         """
-        1. dim = NUM_LEG * 3 + NUM_LEG * 3 + 3 + NUM_LEG + NUM_LEG + NUM_LEG + NUM_Action + NUM_LEG
+        1. dim = NUM_LEG * 3 + NUM_LEG * 3 + 3 + NUM_LEG + NUM_LEG + NUM_LEG  + NUM_LEG
            dim = 6 * 3 + 6 * 3 + 3 + 6 + 6 + 6 + 18 + 6 = 81
         """
         self.basic_obs_buf = torch.cat((
@@ -300,7 +300,6 @@ class LittledogTerrain(LeggedRobot):
             torch.cos(self.ftg_phase),
             torch.sin(self.ftg_phase),
             self.ftg_freq,
-            self.actions,
             self.contacts,
         ), dim = -1)
                                         
